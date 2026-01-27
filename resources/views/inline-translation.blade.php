@@ -47,10 +47,50 @@
                                 style="display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.5rem;">
                                 Translation
                             </label>
-                            <textarea wire:model="translationValue" rows="4"
-                                style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; resize: vertical; outline: none; box-sizing: border-box; background-color: #ffffff; color: #111827;"
-                                onfocus="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)';"
-                                onblur="this.style.borderColor='#d1d5db'; this.style.boxShadow='none';"></textarea>
+                            @if ($html)
+                                <div wire:ignore x-data="{
+                                    content: @js($translationValue),
+                                    timeout: null,
+                                    init() {
+                                        $refs.editor.innerHTML = this.content;
+                                    },
+                                    updateContent() {
+                                        clearTimeout(this.timeout);
+                                        this.timeout = setTimeout(() => {
+                                            let html = $refs.editor.innerHTML;
+                                            html = html.replace(/<div>/g, '').replace(/<\/div>/g, '<br>');
+                                            html = html.replace(/<br><br>/g, '<br>');
+                                            if (html.endsWith('<br>')) html = html.slice(0, -4);
+                                            $wire.set('translationValue', html);
+                                        }, 500);
+                                    },
+                                    execCommand(cmd, value = null) {
+                                        document.execCommand(cmd, false, value);
+                                        $refs.editor.focus();
+                                    }
+                                }">
+                                    <div style="border: 1px solid #d1d5db; border-radius: 0.375rem; overflow: hidden;">
+                                        <div
+                                            style="background-color: #f9fafb; border-bottom: 1px solid #d1d5db; padding: 0.5rem; display: flex; gap: 0.25rem;">
+                                            <button type="button" @click="execCommand('bold')"
+                                                style="padding: 0.25rem 0.5rem; border: 1px solid #d1d5db; border-radius: 0.25rem; background: white; cursor: pointer; font-weight: bold;">B</button>
+                                            <button type="button" @click="execCommand('italic')"
+                                                style="padding: 0.25rem 0.5rem; border: 1px solid #d1d5db; border-radius: 0.25rem; background: white; cursor: pointer; font-style: italic;">I</button>
+                                            <button type="button" @click="execCommand('insertUnorderedList')"
+                                                style="padding: 0.25rem 0.5rem; border: 1px solid #d1d5db; border-radius: 0.25rem; background: white; cursor: pointer;">•
+                                                List</button>
+                                        </div>
+                                        <div x-ref="editor" contenteditable="true" @input="updateContent()"
+                                            style="min-height: 200px; padding: 0.75rem; background: white; outline: none; overflow-y: auto;">
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <textarea wire:model="translationValue" rows="4"
+                                    style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; resize: vertical; outline: none; box-sizing: border-box; background-color: #ffffff; color: #111827;"
+                                    onfocus="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 0 0 3px rgba(59, 130, 246, 0.1)';"
+                                    onblur="this.style.borderColor='#d1d5db'; this.style.boxShadow='none';"></textarea>
+                            @endif
                         </div>
 
                         <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">

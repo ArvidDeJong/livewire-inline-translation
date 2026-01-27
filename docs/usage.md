@@ -74,7 +74,42 @@ return [
 </button>
 ```
 
-### Example 3: Rich Content with HTML
+### Example 3: HTML Editor Mode
+
+For rich text content with formatting, use the `:html="true"` parameter to enable the WYSIWYG editor:
+
+```blade
+<div class="content">
+    <livewire:inline-translation translationKey="website.opening_hours" :html="true" />
+</div>
+```
+
+**Features of HTML Editor:**
+- **ContentEditable** - Native browser editing, no external dependencies
+- **Toolbar** - Bold, Italic, and Bullet List formatting
+- **Auto-save** - Debounced updates (500ms) prevent cursor jumping
+- **BR tags** - Automatically converts `<div>` and `<p>` tags to `<br>` for cleaner HTML
+
+**Language file**:
+```php
+return [
+    'opening_hours' => 'Monday - Friday: 9:00 - 17:00<br>Saturday & Sunday: Closed',
+];
+```
+
+**When to use HTML mode:**
+- Multi-line content with line breaks
+- Text that needs basic formatting (bold, italic)
+- Lists or structured content
+- Opening hours, addresses, or similar formatted text
+
+**When to use plain text mode:**
+- Simple single-line text
+- Button labels
+- Navigation items
+- Short messages
+
+### Example 4: Rich Content with HTML
 
 The component supports HTML in translations:
 

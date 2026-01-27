@@ -13,10 +13,12 @@ Inline translation editing for Livewire applications with database storage. This
 ## ✨ Features
 
 - ✅ **Inline Editing** - Edit translations directly on your website
+- ✅ **HTML Editor** - Optional ContentEditable WYSIWYG editor for rich text content
 - ✅ **Database Storage** - Custom translations stored in database with fallback to Laravel language files
 - ✅ **Flexible Authorization** - Configurable guard system (staff, web, custom)
 - ✅ **Modern UI** - Alpine.js modal with Tailwind inline styles
 - ✅ **Framework Agnostic** - No Flux dependencies, works with any Livewire setup
+- ✅ **No External Dependencies** - Built-in ContentEditable editor, no CDN required
 - ✅ **Auto-Discovery** - Automatic Livewire component registration
 - ✅ **Well Tested** - Comprehensive Pest test suite
 - ✅ **Fully Documented** - Extensive documentation for developers
@@ -43,26 +45,8 @@ Inline translation editing for Livewire applications with database storage. This
 
 ### 1. Install via Composer
 
-Add the package to your `composer.json`:
-
-```json
-{
-    "repositories": [
-        {
-            "type": "path",
-            "url": "../Packages/livewire-inline-translation"
-        }
-    ],
-    "require": {
-        "darvis/livewire-inline-translation": "@dev"
-    }
-}
-```
-
-Then run:
-
 ```bash
-composer update darvis/livewire-inline-translation
+composer require darvis/livewire-inline-translation
 ```
 
 ### 2. Publish and Run Migrations

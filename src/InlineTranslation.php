@@ -14,9 +14,12 @@ class InlineTranslation extends Component
 
     public bool $showModal = false;
 
-    public function mount(string $translationKey): void
+    public bool $html = false;
+
+    public function mount(string $translationKey, bool $html = false): void
     {
         $this->translationKey = $translationKey;
+        $this->html = $html;
         $this->translationValue = $this->getTranslation();
     }
 
