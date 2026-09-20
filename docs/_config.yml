@@ -1,5 +1,5 @@
 title: Livewire Inline Translation
-description: Edit translations inline on the page in a Laravel Livewire app: an authorised user clicks the text, a modal opens and the new value is stored in the database.
+description: "Edit translations inline on the page in a Laravel Livewire app: an authorised user clicks the text, a modal opens and the new value is stored in the database."
 url: https://arviddejong.github.io
 baseurl: /livewire-inline-translation
 

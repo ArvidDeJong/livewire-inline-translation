@@ -108,6 +108,21 @@ test('the FAQ, structured data and llms.txt read from the shared data', function
         ->toContain('site.data.faq');
 });
 
+test('every value in the site config is valid YAML', function () {
+    // An unquoted ": " makes the YAML invalid, and the Pages build then fails outright,
+    // which you only find out after pushing. Jekyll does not tell you locally either.
+    foreach (file(docsPath('_config.yml'), FILE_IGNORE_NEW_LINES) as $number => $line) {
+        if (! preg_match('/^(\w+):\s+(.*)$/', $line, $pair)) {
+            continue;
+        }
+
+        $value = trim($pair[2]);
+
+        expect(str_contains($value, ': ') && ! str_starts_with($value, '"') && ! str_starts_with($value, '['))
+            ->toBeFalse('_config.yml line '.($number + 1).': quote the value of '.$pair[1]);
+    }
+});
+
 test('the config holds the package facts and the sitemap plugin', function () {
     expect(file_get_contents(docsPath('_config.yml')))
         ->toContain('- jekyll-sitemap')
