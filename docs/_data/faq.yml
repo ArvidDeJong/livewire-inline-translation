@@ -13,13 +13,15 @@
   a: Yes. It supports Livewire 3 and 4, Laravel 11, 12 and 13, and PHP 8.2 or higher.
 
 - q: The edit modal does not appear or is cut off. What is wrong?
-  a: The modal is teleported by Alpine into the element named by `modal_container_id`, `inline-translation-modals` by default. That element has to exist in your layout and sit outside anything with its own stacking context, such as a container with `transform` or `overflow: hidden`. Put an empty `div` with that id just before the closing body tag.
+  a: >-
+    The modal is teleported by Alpine into the element named by `modal_container_id`, `inline-translation-modals` by default. That element has to exist in your layout and sit outside anything with its own stacking context, such as a container with `transform` or `overflow: hidden`. Put an empty `div` with that id just before the closing body tag.
 
 - q: Can an editor put HTML in a translation?
   a: Yes, with `:html="true"` the modal shows a small editor with bold, italic and lists, and the stored value is rendered as HTML. That also means whoever may edit can put script on the page, so give the guard only to people you trust that far, or sanitise the value in your own `save()`.
 
 - q: How do I use a translation key that a visitor may not edit?
-  a: Use plain `__('website.welcome')` there. The component and the language file read the same keys, so you can mix the two on one page: editable where a client should be able to change the wording, plain where it must stay as written.
+  a: >-
+    Use plain `__('website.welcome')` there. The component and the language file read the same keys, so you can mix the two on one page: editable where a client should be able to change the wording, plain where it must stay as written.
 
 - q: Do I have to publish a migration?
   a: No. The `translations` table comes along with `php artisan migrate`. Only the config and the views are publishable.
