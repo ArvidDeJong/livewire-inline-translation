@@ -1,3 +1,9 @@
+---
+title: Configuration
+nav_order: 4
+description: "The two settings of darvis/livewire-inline-translation: the guard that decides who may edit, and the element the modal is teleported into."
+---
+
 # Configuration
 
 This document covers all configuration options available in the Livewire Inline Translation package.
@@ -16,7 +22,7 @@ You'll find it at `config/inline-translation.php`:
 <?php
 
 return [
-    'guard' => env('INLINE_TRANSLATION_GUARD', 'staff'),
+    'guard' => env('INLINE_TRANSLATION_GUARD', 'web'),
     'modal_container_id' => 'inline-translation-modals',
 ];
 ```
@@ -27,7 +33,7 @@ return [
 
 **Key**: `guard`  
 **Type**: `string`  
-**Default**: `'staff'`  
+**Default**: `'web'`  
 **Environment Variable**: `INLINE_TRANSLATION_GUARD`
 
 Controls which authentication guard determines if a user can edit translations.
@@ -35,8 +41,8 @@ Controls which authentication guard determines if a user can edit translations.
 **Examples**:
 
 ```php
-// Use staff guard (default)
-'guard' => 'staff',
+// The default: every Laravel app has this guard
+'guard' => 'web',
 
 // Use web guard (regular users)
 'guard' => 'web',
@@ -145,7 +151,7 @@ For more complex scenarios, extend the component:
 
 namespace App\Livewire;
 
-use ArvidDeJong\LivewireInlineTranslation\InlineTranslation as BaseInlineTranslation;
+use Darvis\LivewireInlineTranslation\InlineTranslation as BaseInlineTranslation;
 use Illuminate\Support\Facades\Auth;
 
 class CustomInlineTranslation extends BaseInlineTranslation
@@ -309,10 +315,12 @@ Auth::guard('staff')->check(); // Should return true/false
 4. Check browser console for errors
 
 **Fix**:
+{% raw %}
 ```blade
 <!-- Make sure this exists in your layout -->
 <div id="{{ config('inline-translation.modal_container_id') }}"></div>
 ```
+{% endraw %}
 
 ## Next Steps
 

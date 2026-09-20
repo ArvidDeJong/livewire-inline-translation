@@ -1,10 +1,16 @@
+---
+title: API reference
+nav_order: 6
+description: "Every public method of the InlineTranslation component and the Translation model, with the table and the config keys."
+---
+
 # API Reference
 
 Complete API documentation for the Livewire Inline Translation package.
 
 ## Translation Model
 
-**Namespace**: `ArvidDeJong\LivewireInlineTranslation\Models\Translation`
+**Namespace**: `Darvis\LivewireInlineTranslation\Models\Translation`
 
 ### Properties
 
@@ -44,7 +50,7 @@ public static function getTranslation(
 
 **Example**:
 ```php
-use ArvidDeJong\LivewireInlineTranslation\Models\Translation;
+use Darvis\LivewireInlineTranslation\Models\Translation;
 
 $value = Translation::getTranslation('en', 'website', 'welcome');
 // Returns: "Welcome to our platform!" or null
@@ -87,7 +93,7 @@ Translation::setTranslation(
 
 ## InlineTranslation Component
 
-**Namespace**: `ArvidDeJong\LivewireInlineTranslation\InlineTranslation`
+**Namespace**: `Darvis\LivewireInlineTranslation\InlineTranslation`
 
 ### Properties
 
@@ -233,13 +239,14 @@ public function render()
 
 **Authorization Logic**:
 ```php
-$guardName = config('inline-translation.guard', 'staff');
-$isAuthorized = Auth::guard($guardName)->check();
+use Darvis\LivewireInlineTranslation\Support\InlineTranslationConfig;
+
+$isAuthorized = Auth::guard(InlineTranslationConfig::guard())->check();
 ```
 
 ## Service Provider
 
-**Namespace**: `ArvidDeJong\LivewireInlineTranslation\InlineTranslationServiceProvider`
+**Namespace**: `Darvis\LivewireInlineTranslation\InlineTranslationServiceProvider`
 
 ### Methods
 
@@ -367,7 +374,7 @@ Livewire.on('component-updated', (component) => {
 ```php
 namespace App\Livewire;
 
-use ArvidDeJong\LivewireInlineTranslation\InlineTranslation as BaseInlineTranslation;
+use Darvis\LivewireInlineTranslation\InlineTranslation as BaseInlineTranslation;
 
 class CustomInlineTranslation extends BaseInlineTranslation
 {
@@ -404,7 +411,7 @@ Extend the Translation model:
 ```php
 namespace App\Models;
 
-use ArvidDeJong\LivewireInlineTranslation\Models\Translation as BaseTranslation;
+use Darvis\LivewireInlineTranslation\Models\Translation as BaseTranslation;
 
 class Translation extends BaseTranslation
 {
@@ -424,8 +431,8 @@ class Translation extends BaseTranslation
 For better IDE support:
 
 ```php
-use ArvidDeJong\LivewireInlineTranslation\Models\Translation;
-use ArvidDeJong\LivewireInlineTranslation\InlineTranslation;
+use Darvis\LivewireInlineTranslation\Models\Translation;
+use Darvis\LivewireInlineTranslation\InlineTranslation;
 
 /** @var Translation $translation */
 $translation = Translation::find(1);

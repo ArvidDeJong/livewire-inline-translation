@@ -114,34 +114,42 @@ it('does not save with invalid translation key format', function () {
     expect(Translation::count())->toBe(0);
 });
 
-it('shows editable version for authorized users', function () {
-    // Create a mock user
-    $user = new class {
-        public $id = 1;
-    };
+it('offers editing to someone logged in on the configured guard', function () {
+    config([
+        'inline-translation.guard' => 'staff',
+        'auth.guards.staff' => ['driver' => 'session', 'provider' => 'users'],
+    ]);
 
-    // Mock the staff guard
-    Auth::shouldReceive('guard')
-        ->with('staff')
-        ->andReturnSelf();
-
-    Auth::shouldReceive('check')
-        ->andReturn(true);
+    Auth::shouldReceive('guard')->with('staff')->andReturnSelf();
+    Auth::shouldReceive('check')->andReturn(true);
 
     Livewire::test(InlineTranslation::class, ['translationKey' => 'website.welcome'])
-        ->assertSee('wire:click="openModal"');
+        ->assertSee('wire:click="openModal"', false);
 });
 
-it('shows read-only version for unauthorized users', function () {
-    Auth::shouldReceive('guard')
-        ->with('staff')
-        ->andReturnSelf();
+it('shows a plain translation to everyone else', function () {
+    config([
+        'inline-translation.guard' => 'staff',
+        'auth.guards.staff' => ['driver' => 'session', 'provider' => 'users'],
+    ]);
 
-    Auth::shouldReceive('check')
-        ->andReturn(false);
+    Auth::shouldReceive('guard')->with('staff')->andReturnSelf();
+    Auth::shouldReceive('check')->andReturn(false);
 
     Livewire::test(InlineTranslation::class, ['translationKey' => 'website.welcome'])
-        ->assertDontSee('wire:click="openModal"');
+        ->assertDontSee('wire:click="openModal"', false);
+});
+
+it('teleports the modal into the configured container', function () {
+    config(['inline-translation.modal_container_id' => 'my-modals']);
+
+    Auth::shouldReceive('guard')->with('web')->andReturnSelf();
+    Auth::shouldReceive('check')->andReturn(true);
+
+    Livewire::test(InlineTranslation::class, ['translationKey' => 'website.welcome'])
+        ->call('openModal')
+        ->assertSee('x-teleport="#my-modals"', false)
+        ->assertDontSee('x-teleport="#inline-translation-modals"', false);
 });
 
 it('refreshes translation value when opening modal', function () {
@@ -159,4 +167,13 @@ it('refreshes translation value when opening modal', function () {
     // Open modal should refresh the value
     $component->call('openModal')
         ->assertSet('translationValue', 'New database value');
+});
+
+it('does not take the page down when the configured guard does not exist', function () {
+    config(['inline-translation.guard' => 'typo']);
+
+    Livewire::test(InlineTranslation::class, ['translationKey' => 'website.welcome'])
+        ->assertOk()
+        ->assertSee('Welcome from language file')
+        ->assertDontSee('wire:click="openModal"', false);
 });

@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `InlineTranslationConfig` with named accessors is the one place that reads the package config, so a default is written down once.
+- The package now carries the same tooling as the other darvis packages: Pint, Larastan level 8, the `lint`, `format` and `analyse` composer scripts, the shared CI matrix (PHP 8.2 to 8.4 against Laravel 11, 12 and 13, lowest and latest), Dependabot, issue and pull request templates, a `.gitattributes` that keeps `docs/` and `tests/` out of the dist archive, a `CODE_OF_CONDUCT.md`, and a Laravel Boost guideline in `resources/boost/`.
+- A [documentation site](https://arviddejong.github.io/livewire-inline-translation/) on GitHub Pages, built from `docs/`, with an FAQ, a description per page, a sitemap, `llms.txt` and structured data.
+
+### Fixed
+
+- **`modal_container_id` did nothing.** The Blade view had `inline-translation-modals` hardcoded as the teleport target, while the config and the documentation said you could change it. The view now uses the configured id.
+- **The default guard did not exist.** The config shipped `guard => 'user'`, which is not a guard a stock Laravel defines, so every page showing a translation threw `Auth guard [user] is not defined` until you published the config. The default is now `web`, the guard every Laravel application has. Point it at your own editor guard if you have one.
+- A guard the application does not define is treated as "nobody may edit" instead of throwing, so a typo in the config costs the editing and not the page.
+- The code fell back to `'staff'` while the config said `'user'`, the comment claimed `'staff'` and the test expected `'staff'`, so the suite was red. There is one default now, in `InlineTranslationConfig`.
+- The component tests ran on Livewire 3 only: `Livewire::getClass()` no longer exists in Livewire 4, and `assertSee()` escapes its needle, so the assertion on `wire:click="openModal"` could never match. Both are fixed, and the suite now runs on Laravel 13 with Livewire 4.
+- Publishing the migration created the `translations` table a second time. `database/migrations` held both a real migration, which the provider loads automatically, and a `.php.stub` behind the `inline-translation-migrations` publish tag. The stub and that tag are gone; `php artisan migrate` creates the table, as it already did.
+
+### Changed
+
+- `orchestra/testbench` accepts `^11.0` and `pestphp/pest` accepts `^4.0`, so the package can actually be tested on the Laravel 13 it claims to support. `phpunit/phpunit` is a dev dependency instead of an implied one, and `minimum-stability` is `stable`.
+
 ## [1.2.0] - 2026-03-23
 
 ### Added
