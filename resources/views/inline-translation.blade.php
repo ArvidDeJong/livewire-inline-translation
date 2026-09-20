@@ -1,3 +1,5 @@
+@use('Darvis\LivewireInlineTranslation\Support\InlineTranslationConfig')
+
 <span>
     @if ($isAuthorized)
         <span wire:click="openModal"
@@ -6,7 +8,7 @@
             onmouseout="this.style.borderBottomColor='#3b82f6'">{!! $translationValue !!}</span>
 
         @if ($showModal)
-            <template x-teleport="#inline-translation-modals">
+            <template x-teleport="#{{ InlineTranslationConfig::modalContainerId() }}">
                 <div style="position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center;"
                     wire:click.self="closeModal">
                     <div style="position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px);"

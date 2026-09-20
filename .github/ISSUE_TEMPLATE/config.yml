@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security issue
+    url: https://github.com/ArvidDeJong/livewire-inline-translation/security/advisories/new
+    about: Report privately if someone without the configured guard can change a translation.
+  - name: Documentation
+    url: https://arviddejong.github.io/livewire-inline-translation/
+    about: Installation, configuration, how it works and the API reference.

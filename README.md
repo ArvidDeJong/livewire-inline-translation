@@ -1,336 +1,82 @@
-# Livewire Inline Translation
+# darvis/livewire-inline-translation
 
-[![Latest Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/darvis/livewire-inline-translation)
-[![PHP Version](https://img.shields.io/badge/php-%5E8.2-8892BF.svg)](https://php.net)
-[![Laravel Version](https://img.shields.io/badge/laravel-11.x%20%7C%2012.x-FF2D20.svg)](https://laravel.com)
-[![Livewire Version](https://img.shields.io/badge/livewire-3.x%20%7C%204.x-FB70A9.svg)](https://livewire.laravel.com)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Latest version](https://img.shields.io/packagist/v/darvis/livewire-inline-translation.svg)](https://packagist.org/packages/darvis/livewire-inline-translation)
+[![Tests](https://github.com/ArvidDeJong/livewire-inline-translation/actions/workflows/tests.yml/badge.svg)](https://github.com/ArvidDeJong/livewire-inline-translation/actions/workflows/tests.yml)
+[![Total downloads](https://img.shields.io/packagist/dt/darvis/livewire-inline-translation.svg)](https://packagist.org/packages/darvis/livewire-inline-translation)
+[![PHP version](https://img.shields.io/packagist/dependency-v/darvis/livewire-inline-translation/php.svg)](https://packagist.org/packages/darvis/livewire-inline-translation)
+[![License](https://img.shields.io/packagist/l/darvis/livewire-inline-translation.svg)](LICENSE)
 
-Inline translation editing for Livewire applications with database storage. This package allows authorized users (e.g., staff) to edit translations directly on the website without accessing the CMS.
+Lets an authorised user **edit a translation on the page itself**: they click the text, a modal opens, and the new value is stored in the database. Everyone else sees ordinary text, with nothing in the markup that gives away it is editable.
 
-![Demo](https://via.placeholder.com/800x400?text=Demo+Screenshot)
+A client who wants the wording changed normally sends you an email. This lets them do it themselves, without a CMS behind it.
 
-## ✨ Features
+## Features
 
-- ✅ **Inline Editing** - Edit translations directly on your website
-- ✅ **HTML Editor** - Optional ContentEditable WYSIWYG editor for rich text content
-- ✅ **Database Storage** - Custom translations stored in database with fallback to Laravel language files
-- ✅ **Flexible Authorization** - Configurable guard system (staff, web, custom)
-- ✅ **Modern UI** - Alpine.js modal with Tailwind inline styles
-- ✅ **Framework Agnostic** - No Flux dependencies, works with any Livewire setup
-- ✅ **No External Dependencies** - Built-in ContentEditable editor, no CDN required
-- ✅ **Auto-Discovery** - Automatic Livewire component registration
-- ✅ **Well Tested** - Comprehensive Pest test suite
-- ✅ **Fully Documented** - Extensive documentation for developers
+- ✏️ Click to edit, in the page, in a modal
+- 🗄️ Stored in the `translations` table per locale, with a fallback to your language files, which stay untouched
+- 🔐 One guard check decides who may edit; a visitor without it sees plain text
+- 📝 Optional HTML mode with a small bold, italic and list editor
+- 🧩 No CSS framework needed: inline styles, Alpine for the modal, nothing from a CDN
+- 🤖 Laravel Boost guideline included
 
-## 📋 Requirements
+## Requirements
 
-- **PHP**: 8.2 or higher
-- **Laravel**: 11.x or 12.x
-- **Livewire**: 3.x or 4.x
-- **Alpine.js**: Any version (for modal functionality)
+PHP 8.2+, Laravel 11, 12 or 13, and Livewire 3 or 4.
 
-## 📚 Documentation
-
-- [Installation Guide](docs/installation.md) - Step-by-step installation instructions
-- [Usage Guide](docs/usage.md) - Learn how to use the package
-- [Configuration](docs/configuration.md) - All configuration options
-- [How It Works](docs/how-it-works.md) - Understanding the internals
-- [API Reference](docs/api-reference.md) - Complete API documentation
-- [Contributing](CONTRIBUTING.md) - How to contribute to this package
-
-## 🚀 Quick Start
-
-### Installation
-
-### 1. Install via Composer
+## Installation
 
 ```bash
 composer require darvis/livewire-inline-translation
-```
-
-### 2. Publish and Run Migrations
-
-```bash
-php artisan vendor:publish --tag=inline-translation-migrations
 php artisan migrate
 ```
 
-### 3. Publish Config (Optional)
+The `translations` table comes along with the migration; there is nothing to publish for it.
+
+Put a container for the modal in your layout, once, just before the closing body tag:
+
+```blade
+<div id="inline-translation-modals"></div>
+```
+
+## Quick start
+
+Replace the call where the text should become editable:
+
+```blade
+<h1><livewire:inline-translation translation-key="website.welcome" /></h1>
+```
+
+`website.welcome` is looked up in the database first and falls back to `__('website.welcome')`, so the page reads the same as before until someone edits it.
+
+For rich text:
+
+```blade
+<livewire:inline-translation translation-key="website.intro" :html="true" />
+```
+
+## Who may edit
+
+Whoever is logged in on the guard from `config('inline-translation.guard')`, `web` by default:
 
 ```bash
 php artisan vendor:publish --tag=inline-translation-config
 ```
 
-This will create `config/inline-translation.php` where you can configure:
-- Authentication guard (default: `staff`)
-- Modal container ID
-
-### 4. Publish Views (Optional)
-
-If you want to customize the view:
-
-```bash
-php artisan vendor:publish --tag=inline-translation-views
-```
-
-### 5. Add Modal Container to Layout
-
-Add this container to your layout file (e.g., `resources/views/components/layouts/website.blade.php`):
-
-```blade
-<!DOCTYPE html>
-<html>
-<head>
-    <!-- Your head content -->
-    @livewireStyles
-</head>
-<body>
-    <!-- Your body content -->
-    {{ $slot }}
-
-    <!-- Add this container for inline translation modals -->
-    <div id="inline-translation-modals"></div>
-
-    @livewireScripts
-</body>
-</html>
-```
-
-## Usage
-
-### Basic Usage
-
-Use the component in your Blade templates:
-
-```blade
-<livewire:inline-translation translationKey="website.welcome" />
-```
-
-### Translation Key Format
-
-The translation key should follow the format: `{group}.{key}`
-
-- `group`: The language file name (e.g., `website`, `messages`)
-- `key`: The translation key within that file
-
-Examples:
-- `website.welcome` → `lang/en/website.php` → `['welcome' => '...']`
-- `messages.hello` → `lang/en/messages.php` → `['hello' => '...']`
-
-### How It Works
-
-1. **For Visitors**: Shows the translated text normally
-2. **For Authorized Users**: 
-   - Shows text with blue dashed underline
-   - Click to open edit modal
-   - Edit and save translation
-   - Changes are stored in database
-   - No page reload needed
-
-### Translation Priority
-
-1. **Database** - Custom translations from `translations` table (highest priority)
-2. **Language Files** - Laravel's default `lang/{locale}/{file}.php` files (fallback)
-
-This means you can override any Laravel translation by editing it inline, and the original files remain untouched.
-
-## Configuration
-
-### Change Authentication Guard
-
-In `config/inline-translation.php`:
-
 ```php
-return [
-    'guard' => 'web', // Change from 'staff' to 'web' or any other guard
-];
+// config/inline-translation.php
+'guard' => 'staff',
 ```
 
-Or via environment variable:
+The check is a plain `Auth::guard($guard)->check()`, all or nothing. The stored value is rendered as HTML, so whoever may edit may also put script on the page: give that guard only to people you trust that far.
 
-```env
-INLINE_TRANSLATION_GUARD=web
-```
+## Documentation
 
-### Customize Modal Container
+[arviddejong.github.io/livewire-inline-translation](https://arviddejong.github.io/livewire-inline-translation/): installation, usage, configuration, how it works and the API reference.
 
-In `config/inline-translation.php`:
+## Contributing
 
-```php
-return [
-    'modal_container_id' => 'my-custom-container',
-];
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md). Security issues go through [SECURITY.md](SECURITY.md), not a public issue.
 
-Then update your layout:
+## License
 
-```blade
-<div id="my-custom-container"></div>
-```
-
-## Database Structure
-
-The package creates a `translations` table:
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | bigint | Primary key |
-| locale | string(10) | Language code (e.g., 'en', 'nl') |
-| group | string(100) | File name (e.g., 'website', 'messages') |
-| key | string(255) | Translation key |
-| value | text | Translation value |
-| created_at | timestamp | Created timestamp |
-| updated_at | timestamp | Updated timestamp |
-
-Unique constraint on: `locale`, `group`, `key`
-
-## Examples
-
-### Example 1: Welcome Message
-
-Language file `lang/en/website.php`:
-```php
-return [
-    'welcome' => 'Welcome to our website!',
-];
-```
-
-Blade template:
-```blade
-<h1><livewire:inline-translation translationKey="website.welcome" /></h1>
-```
-
-### Example 2: Multiple Translations
-
-```blade
-<div>
-    <h1><livewire:inline-translation translationKey="website.title" /></h1>
-    <p><livewire:inline-translation translationKey="website.description" /></p>
-    <button><livewire:inline-translation translationKey="website.cta_button" /></button>
-</div>
-```
-
-### Example 3: With HTML Content
-
-The component supports HTML in translations:
-
-```blade
-<div>
-    <livewire:inline-translation translationKey="website.rich_content" />
-</div>
-```
-
-Language file:
-```php
-return [
-    'rich_content' => 'This is <strong>bold</strong> and <em>italic</em> text.',
-];
-```
-
-## Important Notes
-
-### Do NOT Use Inside Links or Buttons
-
-❌ **Wrong:**
-```blade
-<a href="/contact">
-    <livewire:inline-translation translationKey="website.contact" />
-</a>
-```
-
-✅ **Correct:**
-```blade
-<a href="/contact">{{ __('website.contact') }}</a>
-```
-
-The component generates a clickable span for authorized users, which conflicts with parent clickable elements.
-
-### Alpine.js Required
-
-The modal uses Alpine.js `x-teleport` directive. Make sure Alpine.js is loaded in your layout:
-
-```blade
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-```
-
-## Troubleshooting
-
-### Modal Not Showing
-
-1. Check if `#inline-translation-modals` container exists in your layout
-2. Verify Alpine.js is loaded
-3. Check browser console for JavaScript errors
-
-### Translations Not Saving
-
-1. Verify database migration ran successfully
-2. Check if user is authenticated with correct guard
-3. Verify translation key format is correct (`group.key`)
-
-### Authorization Not Working
-
-1. Check `config/inline-translation.php` guard setting
-2. Verify user is logged in with correct guard
-3. Clear config cache: `php artisan config:clear`
-
-## 🧪 Testing
-
-The package includes a comprehensive test suite using Pest:
-
-```bash
-# Run all tests
-composer test
-
-# Run with coverage
-composer test-coverage
-
-# Run specific test file
-vendor/bin/pest tests/Unit/TranslationModelTest.php
-```
-
-## 🤝 Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
-
-### Development Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/darvis/livewire-inline-translation.git
-cd livewire-inline-translation
-
-# Install dependencies
-composer install
-
-# Run tests
-composer test
-```
-
-## 📝 Changelog
-
-Please see [CHANGELOG.md](CHANGELOG.md) for recent changes.
-
-## 🔒 Security
-
-If you discover any security-related issues, please email info@arvid.nl instead of using the issue tracker.
-
-## 📄 License
-
-The MIT License (MIT). Please see [License File](LICENSE) for more information.
-
-## 👨‍💻 Author
-
-**Arvid de Jong**
-- Email: info@arvid.nl
-- GitHub: [@darvis](https://github.com/darvis)
-
-## 🙏 Credits
-
-- Built with [Laravel](https://laravel.com)
-- Powered by [Livewire](https://livewire.laravel.com)
-- UI interactions with [Alpine.js](https://alpinejs.dev)
-
-## ⭐ Support
-
-If you find this package helpful, please consider giving it a star on GitHub!
+MIT. See [LICENSE](LICENSE).

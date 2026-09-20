@@ -1,6 +1,7 @@
 <?php
 
 use Darvis\LivewireInlineTranslation\Models\Translation;
+use Illuminate\Database\QueryException;
 
 it('can create a translation', function () {
     $translation = Translation::create([
@@ -80,7 +81,7 @@ it('enforces unique constraint on locale, group, and key', function () {
         'key' => 'welcome',
         'value' => 'Second',
     ]);
-})->throws(\Illuminate\Database\QueryException::class);
+})->throws(QueryException::class);
 
 it('allows same key for different locales', function () {
     Translation::create([

@@ -1,3 +1,9 @@
+---
+title: Installation
+nav_order: 2
+description: "Install darvis/livewire-inline-translation in a Laravel app: composer, the migration, the modal container in your layout and the guard."
+---
+
 # Installation Guide
 
 This guide will walk you through installing the Livewire Inline Translation package step by step.
@@ -59,7 +65,7 @@ php artisan vendor:publish --tag=inline-translation-config
 ```
 
 This creates `config/inline-translation.php` where you can configure:
-- Authentication guard (default: `staff`)
+- Authentication guard (default: `web`)
 - Modal container ID
 
 ## Step 4: Run Migrations
@@ -84,6 +90,7 @@ The package uses Alpine.js to teleport modals to a specific container. Add this 
 
 **Example**: `resources/views/components/layouts/website.blade.php`
 
+{% raw %}
 ```blade
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -110,6 +117,7 @@ The package uses Alpine.js to teleport modals to a specific container. Add this 
 </body>
 </html>
 ```
+{% endraw %}
 
 **Important**: 
 - The container ID must match the `modal_container_id` in your config

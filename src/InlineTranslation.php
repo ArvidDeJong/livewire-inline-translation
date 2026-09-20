@@ -3,6 +3,8 @@
 namespace Darvis\LivewireInlineTranslation;
 
 use Darvis\LivewireInlineTranslation\Models\Translation;
+use Darvis\LivewireInlineTranslation\Support\InlineTranslationConfig;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -70,13 +72,30 @@ class InlineTranslation extends Component
         return __($this->translationKey);
     }
 
-    public function render()
+    public function render(): View
     {
-        $guardName = config('inline-translation.guard', 'staff');
-        $isAuthorized = Auth::guard($guardName)->check();
+        /** @var view-string $view */
+        $view = 'inline-translation::inline-translation';
 
-        return view('inline-translation::inline-translation', [
-            'isAuthorized' => $isAuthorized,
+        return view($view, [
+            'isAuthorized' => $this->isAuthorized(),
         ]);
+    }
+
+    /**
+     * Whether the visitor may edit this translation.
+     *
+     * A guard the application does not define would throw on every render of every page that
+     * shows a translation, so a typo in the config costs the editing, not the site.
+     */
+    protected function isAuthorized(): bool
+    {
+        $guard = InlineTranslationConfig::guard();
+
+        if (! is_array(config('auth.guards.'.$guard))) {
+            return false;
+        }
+
+        return Auth::guard($guard)->check();
     }
 }

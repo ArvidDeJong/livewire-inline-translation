@@ -1,3 +1,9 @@
+---
+title: How it works
+nav_order: 5
+description: "Database first, language file second: how a translation is looked up, saved per locale, and how the modal reaches your layout."
+---
+
 # How It Works
 
 This document explains the internal workings of the Livewire Inline Translation package. Understanding these concepts will help you use the package effectively and troubleshoot issues.
@@ -141,10 +147,11 @@ The component renders differently based on authorization:
 
 **Authorization Check**:
 ```php
+use Darvis\LivewireInlineTranslation\Support\InlineTranslationConfig;
+
 public function render()
 {
-    $guardName = config('inline-translation.guard', 'staff');
-    $isAuthorized = Auth::guard($guardName)->check();
+    $isAuthorized = Auth::guard(InlineTranslationConfig::guard())->check();
     
     return view('inline-translation::inline-translation', [
         'isAuthorized' => $isAuthorized,

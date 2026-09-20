@@ -1,3 +1,9 @@
+---
+title: Usage
+nav_order: 3
+description: "Render the inline-translation component in Blade, use the HTML editor mode, and the places where an editable translation does not belong."
+---
+
 # Usage Guide
 
 This guide explains how to use the Livewire Inline Translation package in your application.
@@ -184,6 +190,7 @@ User requests: website.welcome
 **Why**: The component creates a clickable `<span>` for authorized users, which conflicts with parent clickable elements.
 
 **Correct**:
+{% raw %}
 ```blade
 <a href="/contact">
     {{ __('website.contact') }}
@@ -193,6 +200,7 @@ User requests: website.welcome
     {{ __('website.button') }}
 </button>
 ```
+{% endraw %}
 
 ### ✅ Best Practices
 
@@ -245,7 +253,7 @@ If you need more complex authorization, you can extend the component:
 ```php
 namespace App\Livewire;
 
-use ArvidDeJong\LivewireInlineTranslation\InlineTranslation as BaseInlineTranslation;
+use Darvis\LivewireInlineTranslation\InlineTranslation as BaseInlineTranslation;
 
 class InlineTranslation extends BaseInlineTranslation
 {
@@ -348,7 +356,7 @@ Test translations in a staging environment before deploying to production.
 You can export custom translations to share across environments:
 
 ```php
-$translations = \ArvidDeJong\LivewireInlineTranslation\Models\Translation::all();
+$translations = \Darvis\LivewireInlineTranslation\Models\Translation::all();
 ```
 
 ## Next Steps
