@@ -74,7 +74,10 @@ test('Blade examples are wrapped in raw, so Liquid does not eat them', function 
         // Strip the raw blocks; whatever Liquid is left would be rendered away.
         $stripped = (string) preg_replace('/\{% raw %\}.*?\{% endraw %\}/s', '', $body);
 
-        expect($stripped)->not->toContain('{{', $name.': wrap this Blade in {% raw %} ... {% endraw %}');
+        // Not ->not->toContain($needle, $message): toContain() reads a second argument as another
+        // needle, and the negated check then passes whatever the page holds.
+        expect(str_contains($stripped, '{{'))
+            ->toBeFalse($name.': wrap this Blade in {% raw %} ... {% endraw %}');
     }
 });
 
