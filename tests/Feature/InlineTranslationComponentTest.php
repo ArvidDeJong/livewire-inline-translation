@@ -5,6 +5,15 @@ use Darvis\LivewireInlineTranslation\Models\Translation;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Livewire;
 
+/**
+ * Log in on the configured guard: opening the modal and saving are refused without it.
+ */
+function actAsEditor(string $guard = 'web'): void
+{
+    Auth::shouldReceive('guard')->with($guard)->andReturnSelf();
+    Auth::shouldReceive('check')->andReturn(true);
+}
+
 beforeEach(function () {
     // Set up language file
     app('translator')->addLines([
@@ -50,6 +59,8 @@ it('prioritizes database translation over language file', function () {
 });
 
 it('can open modal', function () {
+    actAsEditor();
+
     Livewire::test(InlineTranslation::class, ['translationKey' => 'website.welcome'])
         ->assertSet('showModal', false)
         ->call('openModal')
@@ -57,6 +68,8 @@ it('can open modal', function () {
 });
 
 it('can close modal', function () {
+    actAsEditor();
+
     Livewire::test(InlineTranslation::class, ['translationKey' => 'website.welcome'])
         ->call('openModal')
         ->assertSet('showModal', true)
@@ -65,6 +78,8 @@ it('can close modal', function () {
 });
 
 it('can save translation to database', function () {
+    actAsEditor();
+
     Livewire::test(InlineTranslation::class, ['translationKey' => 'website.welcome'])
         ->set('translationValue', 'New translation value')
         ->call('save');
@@ -78,6 +93,8 @@ it('can save translation to database', function () {
 });
 
 it('closes modal after saving', function () {
+    actAsEditor();
+
     Livewire::test(InlineTranslation::class, ['translationKey' => 'website.welcome'])
         ->call('openModal')
         ->set('translationValue', 'New value')
@@ -86,6 +103,8 @@ it('closes modal after saving', function () {
 });
 
 it('updates existing translation when saving', function () {
+    actAsEditor();
+
     Translation::create([
         'locale' => 'en',
         'group' => 'website',
@@ -107,6 +126,8 @@ it('handles invalid translation key format gracefully', function () {
 });
 
 it('does not save with invalid translation key format', function () {
+    actAsEditor();
+
     Livewire::test(InlineTranslation::class, ['translationKey' => 'invalid'])
         ->set('translationValue', 'Some value')
         ->call('save');
@@ -153,6 +174,8 @@ it('teleports the modal into the configured container', function () {
 });
 
 it('refreshes translation value when opening modal', function () {
+    actAsEditor();
+
     $component = Livewire::test(InlineTranslation::class, ['translationKey' => 'website.welcome'])
         ->assertSet('translationValue', 'Welcome from language file');
 

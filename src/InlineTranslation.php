@@ -6,16 +6,22 @@ use Darvis\LivewireInlineTranslation\Models\Translation;
 use Darvis\LivewireInlineTranslation\Support\InlineTranslationConfig;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class InlineTranslation extends Component
 {
+    /**
+     * Locked: the page decides which key this component edits, the browser may not change it.
+     */
+    #[Locked]
     public string $translationKey = '';
 
     public string $translationValue = '';
 
     public bool $showModal = false;
 
+    #[Locked]
     public bool $html = false;
 
     public function mount(string $translationKey, bool $html = false): void
@@ -27,6 +33,8 @@ class InlineTranslation extends Component
 
     public function openModal(): void
     {
+        $this->authorizeEditing();
+
         $this->translationValue = $this->getTranslation();
         $this->showModal = true;
     }
@@ -38,6 +46,8 @@ class InlineTranslation extends Component
 
     public function save(): void
     {
+        $this->authorizeEditing();
+
         $parts = explode('.', $this->translationKey, 2);
 
         if (count($parts) !== 2) {
@@ -80,6 +90,18 @@ class InlineTranslation extends Component
         return view($view, [
             'isAuthorized' => $this->isAuthorized(),
         ]);
+    }
+
+    /**
+     * Stop an action for a visitor who may not edit.
+     *
+     * The component is on the page for every visitor, and the browser can call any public action,
+     * so hiding the underline in the view is not a check. Every action that reads for editing or
+     * writes goes through here.
+     */
+    protected function authorizeEditing(): void
+    {
+        abort_unless($this->isAuthorized(), 403);
     }
 
     /**

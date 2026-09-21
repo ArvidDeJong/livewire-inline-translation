@@ -156,18 +156,16 @@ use Illuminate\Support\Facades\Auth;
 
 class CustomInlineTranslation extends BaseInlineTranslation
 {
-    public function render()
+    protected function isAuthorized(): bool
     {
-        // Custom logic: User must be staff AND have permission
-        $isAuthorized = Auth::guard('staff')->check() 
-            && Auth::guard('staff')->user()->can('edit-translations');
-
-        return view('inline-translation::inline-translation', [
-            'isAuthorized' => $isAuthorized,
-        ]);
+        // The guard check of the package, and a permission on top of it.
+        return parent::isAuthorized()
+            && Auth::guard('staff')->user()?->can('edit-translations') === true;
     }
 }
 ```
+
+Override `isAuthorized()`, not `render()`. The view, `openModal()` and `save()` all ask `isAuthorized()`, so one override covers the underline and the writing.
 
 Then register your custom component:
 
@@ -264,14 +262,10 @@ Consider adding:
 // php artisan permission:create edit-translations
 
 // In your custom component
-public function render()
+protected function isAuthorized(): bool
 {
-    $isAuthorized = Auth::guard('staff')->check() 
-        && Auth::guard('staff')->user()->hasPermissionTo('edit-translations');
-
-    return view('inline-translation::inline-translation', [
-        'isAuthorized' => $isAuthorized,
-    ]);
+    return parent::isAuthorized()
+        && Auth::guard('staff')->user()?->hasPermissionTo('edit-translations') === true;
 }
 ```
 

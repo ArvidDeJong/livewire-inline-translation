@@ -143,7 +143,7 @@ php artisan migrate:status
 
 ### Change Authentication Guard
 
-By default, the package uses the `staff` guard. To change this:
+The default guard is `web`, the guard your ordinary users log in on. With that default **everyone who is logged in may edit every translation**, and a translation is rendered as HTML. Point the package at a guard only your editors can log in on, or narrow it with a permission. To change the guard:
 
 **Option 1**: Environment variable (recommended)
 
@@ -176,6 +176,10 @@ Then update your layout:
 ```blade
 <div id="my-custom-modals"></div>
 ```
+
+## Laravel Boost
+
+The package ships [Laravel Boost](https://laravel.com/docs/boost) resources: a guideline and a `livewire-inline-translation-development` skill, so an AI assistant in your project knows how the component looks up, renders and saves a translation. Run `php artisan boost:install`, or `php artisan boost:update --discover` in a project that already uses Boost.
 
 ## Troubleshooting
 

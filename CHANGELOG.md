@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- **`save()` and `openModal()` now check the guard.** The guard was only asked when the component was drawn, to decide whether the underline is shown. The component is on the page for every visitor and the browser can call every public action of a Livewire component, so a visitor who was not logged in could store a value for any translation key, and a value is rendered as HTML. Both actions now answer 403 for a visitor who may not edit, and `translationKey` and `html` are `#[Locked]`, so the browser cannot point the component at another key. Upgrade, and check the `translations` table for rows you did not write:
+  `select * from translations where value like '%<script%' or value like '%onerror=%' or value like '%javascript:%';`
+- If you subclassed the component and added a public action of your own, call `$this->authorizeEditing()` at the top of it.
+
+### Fixed
+
+- The "Custom Authorization Logic" examples in the docs overrode `render()`, which is a fatal error (the return type is missing) and only ever hid the underline. They now override `isAuthorized()`, which the view, `openModal()` and `save()` all ask.
+- The docs named `staff` and `user` as the default guard. It is `web`: out of the box everyone who is logged in may edit. The docs now say so and tell you to point the package at a guard for editors.
+
+### Added
+
+- A Laravel Boost skill, `livewire-inline-translation-development`, in `resources/boost/skills/`. It covers how a translation is looked up, rendered and saved, what each failure gives you, the pitfalls in a host app (where the guard is checked, the locale on a Livewire update, `__()` elsewhere not reading the database), narrowing editing to a permission, reading and writing the `translations` table yourself, the settings and how to test it.
+- A social preview image for the documentation site, used for the Open Graph and Twitter card of every page.
+
 ## [1.3.0] - 2026-09-20
 
 ### Added
@@ -139,4 +157,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Future Releases
 
-See [GitHub Issues](https://github.com/darvis/livewire-inline-translation/issues) for planned features and improvements.
+See [GitHub Issues](https://github.com/ArvidDeJong/livewire-inline-translation/issues) for planned features and improvements.
