@@ -1,443 +1,89 @@
 ---
-title: How it works
+title: "How it works"
 nav_order: 5
-description: "Database first, language file second: how a translation is looked up, saved per locale, and how the modal reaches your layout."
+description: "What the inline-translation component does on each request: the database first lookup, the guard check on every action, saving per locale and the modal."
 ---
 
-# How It Works
-
-This document explains the internal workings of the Livewire Inline Translation package. Understanding these concepts will help you use the package effectively and troubleshoot issues.
-
-## Architecture Overview
-
-The package consists of four main components:
-
-1. **Translation Model** - Database storage and retrieval
-2. **Livewire Component** - UI and user interaction
-3. **Service Provider** - Laravel integration
-4. **Blade View** - Visual presentation
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      User Interface                          │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │  Blade View (inline-translation.blade.php)             │ │
-│  │  - Shows text with/without edit indicator              │ │
-│  │  - Renders modal for editing                           │ │
-│  └────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-                            ↕
-┌─────────────────────────────────────────────────────────────┐
-│                   Livewire Component                         │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │  InlineTranslation.php                                 │ │
-│  │  - Handles user interactions                           │ │
-│  │  - Manages modal state                                 │ │
-│  │  - Coordinates between view and model                  │ │
-│  └────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-                            ↕
-┌─────────────────────────────────────────────────────────────┐
-│                    Translation Model                         │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │  Translation.php                                       │ │
-│  │  - Database operations                                 │ │
-│  │  - getTranslation() - Retrieve                         │ │
-│  │  - setTranslation() - Save/Update                      │ │
-│  └────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-                            ↕
-┌─────────────────────────────────────────────────────────────┐
-│                      Database Layer                          │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │  translations table                                    │ │
-│  │  - Stores custom translations                          │ │
-│  │  - Indexed for fast lookups                            │ │
-│  └────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Component Lifecycle
-
-### 1. Component Initialization
-
-When you use `<livewire:inline-translation translationKey="website.welcome" />`:
-
-```php
-public function mount(string $translationKey): void
-{
-    // Store the translation key
-    $this->translationKey = $translationKey;
-    
-    // Get the current translation value
-    $this->translationValue = $this->getTranslation();
-}
-```
-
-**What happens**:
-1. Livewire creates a component instance
-2. The `translationKey` is passed to `mount()`
-3. `getTranslation()` is called to fetch the current value
-4. The component is ready to render
-
-### 2. Translation Retrieval
-
-The `getTranslation()` method implements the two-tier priority system:
-
-```php
-protected function getTranslation(): string
-{
-    // Parse the translation key
-    $parts = explode('.', $this->translationKey, 2);
-    
-    if (count($parts) !== 2) {
-        return $this->translationKey; // Invalid format
-    }
-    
-    [$group, $key] = $parts;
-    $locale = app()->getLocale();
-    
-    // PRIORITY 1: Check database for custom translation
-    $customTranslation = Translation::getTranslation($locale, $group, $key);
-    
-    if ($customTranslation !== null) {
-        return $customTranslation; // Found in database
-    }
-    
-    // PRIORITY 2: Fallback to Laravel language files
-    return __($this->translationKey);
-}
-```
-
-**Flow**:
-```
-translationKey: "website.welcome"
-         ↓
-Split into: group="website", key="welcome"
-         ↓
-Get locale: "en"
-         ↓
-Query database:
-  SELECT value FROM translations
-  WHERE locale='en' AND group='website' AND key='welcome'
-         ↓
-Found? → Return database value
-Not found? → Return __('website.welcome')
-```
-
-### 3. Rendering
-
-The component renders differently based on authorization:
-
-```blade
-@if ($isAuthorized)
-    <!-- Editable version with blue underline -->
-    <span wire:click="openModal" style="...">
-        {!! $translationValue !!}
-    </span>
-    
-    @if ($showModal)
-        <!-- Modal for editing -->
-    @endif
-@else
-    <!-- Read-only version -->
-    {!! $translationValue !!}
-@endif
-```
-
-**Authorization Check**:
-```php
-use Darvis\LivewireInlineTranslation\Support\InlineTranslationConfig;
-
-public function render()
-{
-    $isAuthorized = Auth::guard(InlineTranslationConfig::guard())->check();
-    
-    return view('inline-translation::inline-translation', [
-        'isAuthorized' => $isAuthorized,
-    ]);
-}
-```
-
-### 4. User Interaction
-
-When an authorized user clicks the text:
-
-```php
-public function openModal(): void
-{
-    // Refresh the translation value (in case it changed)
-    $this->translationValue = $this->getTranslation();
-    
-    // Show the modal
-    $this->showModal = true;
-}
-```
-
-Livewire automatically:
-1. Updates the component state
-2. Re-renders the view
-3. Shows the modal via Alpine.js
-
-### 5. Saving Changes
-
-When the user saves:
-
-```php
-public function save(): void
-{
-    // Parse the translation key
-    $parts = explode('.', $this->translationKey, 2);
-    
-    if (count($parts) !== 2) {
-        return; // Invalid format
-    }
-    
-    [$group, $key] = $parts;
-    $locale = app()->getLocale();
-    
-    // Save to database
-    Translation::setTranslation($locale, $group, $key, $this->translationValue);
-    
-    // Close the modal
-    $this->showModal = false;
-}
-```
-
-**Database Operation**:
-```php
-public static function setTranslation(string $locale, string $group, string $key, string $value): self
-{
-    return self::updateOrCreate(
-        [
-            'locale' => $locale,
-            'group' => $group,
-            'key' => $key,
-        ],
-        [
-            'value' => $value,
-        ]
-    );
-}
-```
-
-This uses Laravel's `updateOrCreate()`:
-- **If record exists**: Updates the `value` field
-- **If record doesn't exist**: Creates a new record
-
-## Database Schema
-
-The `translations` table structure:
-
-```sql
-CREATE TABLE translations (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    locale VARCHAR(10) NOT NULL,
-    group VARCHAR(100) NOT NULL,
-    key VARCHAR(255) NOT NULL,
-    value TEXT NOT NULL,
-    created_at TIMESTAMP NULL,
-    updated_at TIMESTAMP NULL,
-    
-    UNIQUE KEY unique_translation (locale, group, key),
-    INDEX idx_locale (locale),
-    INDEX idx_group (group),
-    INDEX idx_key (key)
-);
-```
-
-**Indexes**:
-- **Unique constraint**: Prevents duplicate translations
-- **Individual indexes**: Fast lookups by locale, group, or key
-- **Composite unique**: Ensures one translation per locale/group/key combination
-
-**Example Records**:
-```
-| id | locale | group   | key     | value                    | created_at | updated_at |
-|----|--------|---------|---------|--------------------------|------------|------------|
-| 1  | en     | website | welcome | Welcome to our platform! | ...        | ...        |
-| 2  | nl     | website | welcome | Welkom op ons platform!  | ...        | ...        |
-| 3  | en     | website | hero    | Your success starts here | ...        | ...        |
-```
-
-## Modal System
-
-The package uses Alpine.js `x-teleport` to move the modal to a specific container:
-
-```blade
-@if ($showModal)
-    <template x-teleport="#inline-translation-modals">
-        <div class="modal-backdrop">
-            <div class="modal-content">
-                <!-- Modal content -->
-            </div>
-        </div>
-    </template>
-@endif
-```
-
-**Why Teleport?**
-
-1. **Z-index Issues**: Prevents stacking context problems
-2. **Positioning**: Ensures modal appears above all content
-3. **Accessibility**: Keeps modals at the top level of DOM
-4. **Consistency**: All modals appear in the same container
-
-**Without Teleport**:
-```html
-<div class="page-content" style="position: relative; z-index: 1;">
-    <div class="modal" style="z-index: 999;">
-        <!-- Modal might be hidden behind other elements -->
-    </div>
-</div>
-```
-
-**With Teleport**:
-```html
-<body>
-    <div class="page-content" style="position: relative; z-index: 1;">
-        <!-- Component here -->
-    </div>
-    
-    <div id="inline-translation-modals">
-        <div class="modal" style="z-index: 9999;">
-            <!-- Modal always on top -->
-        </div>
-    </div>
-</body>
-```
-
-## Service Provider
-
-The service provider handles Laravel integration:
-
-```php
-public function boot(): void
-{
-    // Register Livewire component
-    Livewire::component('inline-translation', InlineTranslation::class);
-    
-    // Load migrations (for package development)
-    $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
-    
-    // Load views with namespace
-    $this->loadViewsFrom(__DIR__.'/../resources/views', 'inline-translation');
-    
-    // Publish assets
-    $this->publishes([...]);
-}
-```
-
-**Auto-Discovery**:
-
-Laravel automatically discovers the service provider via `composer.json`:
-
-```json
-"extra": {
-    "laravel": {
-        "providers": [
-            "Darvis\\LivewireInlineTranslation\\InlineTranslationServiceProvider"
-        ]
-    }
-}
-```
-
-No manual registration needed!
-
-## Performance Considerations
-
-### Database Queries
-
-Each component instance makes **one query** during mount:
-
-```php
-// This query is cached by Eloquent
-Translation::where('locale', $locale)
-    ->where('group', $group)
-    ->where('key', $key)
-    ->value('value');
-```
-
-**Optimization Tips**:
-
-1. **Use Caching**: Cache translations for production
-2. **Eager Loading**: Not applicable (single record lookup)
-3. **Indexes**: Already optimized with database indexes
-
-### Livewire Overhead
-
-Each component adds minimal overhead:
-- **Initial render**: ~1-2ms
-- **Re-render**: ~0.5-1ms
-- **Network**: ~1KB per component
-
-**Best Practice**: Use for content that changes, not for static UI elements.
-
-## Security
-
-### XSS Protection
-
-The component uses `{!! !!}` to render HTML:
-
-```blade
-{!! $translationValue !!}
-```
-
-**Why?** Translations may contain legitimate HTML (bold, links, etc.)
-
-**Risk**: Malicious HTML could be injected
-
-**Mitigation**:
-1. Only authorized users can edit (staff guard)
-2. Trusted users should validate content
-3. Consider adding HTML sanitization for extra security
-
-### SQL Injection
-
-Protected by Eloquent's parameter binding:
-
-```php
-// Safe - uses parameter binding
-Translation::where('locale', $locale)
-    ->where('group', $group)
-    ->where('key', $key);
-```
-
-### CSRF Protection
-
-Livewire handles CSRF automatically - no additional protection needed.
-
-## Debugging
-
-### Enable Livewire Debugging
-
-```blade
-@livewireScripts(['debug' => true])
-```
-
-### Check Component State
-
-In browser console:
-```javascript
-// Find component
-Livewire.find('component-id')
-
-// Check properties
-Livewire.find('component-id').get('translationKey')
-Livewire.find('component-id').get('translationValue')
-```
-
-### Database Queries
-
-Enable query logging:
-```php
-DB::enableQueryLog();
-// ... use component ...
-dd(DB::getQueryLog());
-```
-
-## Next Steps
-
-- [API Reference](api-reference.md) - Detailed API documentation
-- [Extending](extending.md) - Customize the package
-- [Contributing](../CONTRIBUTING.md) - Contribute to the package
+# How it works
+
+The package has four parts: the Livewire component `InlineTranslation`, the Eloquent model `Translation`, one Blade view and a service provider that ties them to Laravel.
+
+## What the service provider registers
+
+`InlineTranslationServiceProvider` is discovered by Laravel through `composer.json`. It:
+
+1. registers the Livewire component under the name `inline-translation`;
+2. loads the migration from the package, which is how your application gets the `translations` table with `php artisan migrate`;
+3. loads the views under the namespace `inline-translation`;
+4. offers the view and the config for publishing, with the tags `inline-translation-views` and `inline-translation-config`;
+5. merges the package config under the key `inline-translation`.
+
+There is no migration to publish, and the package has no routes, commands, events or middleware of its own.
+
+## How a text is looked up
+
+When the page renders the tag, Livewire calls `mount(string $translationKey, bool $html = false)`:
+
+1. The key is split on the first dot into a group and a key. `website.hero.title` becomes group `website` and key `hero.title`. A key without a dot is not looked up; the component shows the key itself.
+2. `Translation::getTranslation($locale, $group, $key)` reads the `value` column of the row for `app()->getLocale()`.
+3. A row wins. Without a row the component returns `__($translationKey)`, the text from your language file. When the language file has no such line either, Laravel returns the key, so the key is what the page shows.
+
+That is one database query for each component on the page, on every page view. Nothing is cached. `openModal()` runs the same lookup again, so the editor starts from the current value.
+
+## Who gets the underline, and who may save
+
+`isAuthorized()` answers `true` when the configured guard is defined under `auth.guards` and `Auth::guard($guard)->check()` passes. A guard that is not defined gives `false` instead of an exception, so a typo in the config costs the editing and not the page.
+
+The answer is used in three places:
+
+| Where | What happens when it is `false` |
+| --- | --- |
+| `render()` passes it to the view as `$isAuthorized` | the text is shown without the underline, the click handler and the modal |
+| `openModal()` | the request is answered with HTTP 403 |
+| `save()` | the request is answered with HTTP 403; nothing is written |
+
+`openModal()` and `save()` do this through `authorizeEditing()`, which is `abort_unless($this->isAuthorized(), 403)`. The check on the actions matters because the component is on the page for every visitor, and a browser can call any public method of a Livewire component.
+
+The properties `translationKey` and `html` are locked with Livewire's `#[Locked]` attribute: the browser cannot change which key a component edits. An attempt ends in Livewire's exception `Cannot update locked property: [translationKey]`.
+
+The checks on the actions and the locked properties exist since version 1.3.1. Upgrade an older installation.
+
+## What a visitor receives
+
+Every visitor, logged in or not, gets the text inside a `<span>` that carries Livewire's attributes (such as `wire:id` and `wire:snapshot`). The snapshot contains the translation key. Only an authorised user also gets the inner `<span wire:click="openModal">` with the dashed underline.
+
+The value is printed without escaping, in both modes. That is what makes the HTML editor useful, and it means the people who may edit can put any markup on the page, including script.
+
+## How a save is stored
+
+`save()` splits the key the same way and calls `Translation::setTranslation($locale, $group, $key, $value)` with the locale of the request in which the save happens. That is an `updateOrCreate()` on `locale`, `group` and `key`: the first save creates the row, a later save updates it. Then the modal closes and the component shows the new value.
+
+A key without a dot is not saved. `save()` returns without writing, and the modal stays open.
+
+Livewire sends the save to its own update route. Route middleware of your page does not run there unless it is persistent middleware; see [Several locales](usage.md#several-locales).
+
+## The translations table
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | big integer | primary key |
+| `locale` | string, 10 | indexed |
+| `group` | string, 100 | indexed; the part of the key before the first dot |
+| `key` | string, 255 | indexed; the rest of the key |
+| `value` | text | not nullable |
+| `created_at`, `updated_at` | timestamps | |
+
+`locale`, `group` and `key` together are unique, so there is one row for each text in each locale.
+
+## How the modal reaches your layout
+
+The modal only exists in the HTML while `showModal` is true. It sits in a `<template x-teleport="#...">` element, with the id from `modal_container_id`. Alpine, which Livewire ships, moves the content of that template into the element with that id. A modal that stayed inside a heading or a card could be cut off by `overflow: hidden` or end up under other elements; an empty container at the end of the body avoids that.
+
+Without an element with that id there is nothing to move the modal into: the modal does not appear, and the browser console shows Alpine's warning `Cannot find x-teleport element for selector: "#inline-translation-modals"`.
+
+In HTML mode the editor is a `contenteditable` element. It sends its content to the component 500 ms after the last input, with `<div>` tags removed, `</div>` turned into `<br>`, a double `<br>` reduced to one and a `<br>` at the end dropped.
+
+## Next
+
+- [API reference](api-reference.md): every method and property
+- [Testing](testing.md): test this behaviour in your own application

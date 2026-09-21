@@ -1,448 +1,111 @@
 ---
-title: API reference
+title: "API reference"
 nav_order: 6
-description: "Every public method of the InlineTranslation component and the Translation model, with the table and the config keys."
+description: "Every public and protected member of the InlineTranslation component and the Translation model, plus the tag attributes, config accessors and publish tags."
 ---
 
-# API Reference
+# API reference
 
-Complete API documentation for the Livewire Inline Translation package.
+## The Blade tag
 
-## Translation Model
+```blade
+<livewire:inline-translation translation-key="website.welcome" />
+<livewire:inline-translation translation-key="website.intro" :html="true" />
+```
 
-**Namespace**: `Darvis\LivewireInlineTranslation\Models\Translation`
+| Attribute | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `translation-key` | string, required | | The key in the form `group.key`. `translationKey` is accepted as well. |
+| `:html` | bool | `false` | `true` shows the editor with bold, italic and a bullet list instead of a text field. |
+
+The component name is `inline-translation`. It is registered by the service provider; you do not register it yourself.
+
+## InlineTranslation
+
+`Darvis\LivewireInlineTranslation\InlineTranslation`, a `Livewire\Component`.
 
 ### Properties
 
-#### `$fillable`
+| Property | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `$translationKey` | `string` | `''` | `#[Locked]`: set by the tag, the browser cannot change it. |
+| `$translationValue` | `string` | `''` | The current text; bound to the field in the modal. |
+| `$showModal` | `bool` | `false` | Whether the modal is rendered. |
+| `$html` | `bool` | `false` | `#[Locked]`. |
 
-```php
-protected $fillable = [
-    'locale',
-    'group',
-    'key',
-    'value',
-];
-```
+### Public methods
 
-Mass-assignable attributes.
+| Method | What it does |
+| --- | --- |
+| `mount(string $translationKey, bool $html = false): void` | Stores both arguments and loads the current text into `$translationValue`. |
+| `openModal(): void` | Checks the authorisation (403 when it fails), reloads the text and sets `$showModal` to `true`. |
+| `closeModal(): void` | Sets `$showModal` to `false`. It changes nothing else, so it has no authorisation check. |
+| `save(): void` | Checks the authorisation (403 when it fails), stores `$translationValue` for the current locale and closes the modal. A key without a dot is not stored and leaves the modal open. |
+| `render(): Illuminate\Contracts\View\View` | Renders the view `inline-translation::inline-translation` with one variable, `$isAuthorized` (bool). |
 
-### Static Methods
+### Protected methods, for a subclass
 
-#### `getTranslation()`
+| Method | What it does |
+| --- | --- |
+| `isAuthorized(): bool` | `true` when the configured guard is defined in `auth.guards` and someone is logged in on it. Override this to narrow who may edit; see [Configuration](configuration.md#let-only-some-users-edit). |
+| `authorizeEditing(): void` | `abort_unless($this->isAuthorized(), 403)`. Call it first in every public action you add. |
+| `getTranslation(): string` | The database value for the current locale, otherwise `__($this->translationKey)`. For a key without a dot it returns the key. |
 
-Retrieve a translation from the database.
+## Translation
 
-```php
-public static function getTranslation(
-    string $locale, 
-    string $group, 
-    string $key
-): ?string
-```
+`Darvis\LivewireInlineTranslation\Models\Translation`, an Eloquent model on the `translations` table. Fillable: `locale`, `group`, `key`, `value`.
 
-**Parameters**:
-- `$locale` (string) - Language code (e.g., 'en', 'nl')
-- `$group` (string) - File name (e.g., 'website', 'messages')
-- `$key` (string) - Translation key
-
-**Returns**: `?string` - Translation value or `null` if not found
-
-**Example**:
 ```php
 use Darvis\LivewireInlineTranslation\Models\Translation;
 
-$value = Translation::getTranslation('en', 'website', 'welcome');
-// Returns: "Welcome to our platform!" or null
+Translation::getTranslation('en', 'website', 'welcome');          // ?string
+Translation::setTranslation('en', 'website', 'welcome', 'Hello'); // Translation
 ```
 
-#### `setTranslation()`
+| Method | Returns | What it does |
+| --- | --- | --- |
+| `getTranslation(string $locale, string $group, string $key): ?string` | the `value`, or `null` when there is no row | One query on `locale`, `group` and `key`. |
+| `setTranslation(string $locale, string $group, string $key, string $value): self` | the model | `updateOrCreate()`: creates the row or updates its `value`. |
 
-Save or update a translation in the database.
+Both are static. Neither checks who is calling; they are meant for your own code, such as a seeder or an import.
 
-```php
-public static function setTranslation(
-    string $locale, 
-    string $group, 
-    string $key, 
-    string $value
-): self
-```
+## InlineTranslationConfig
 
-**Parameters**:
-- `$locale` (string) - Language code
-- `$group` (string) - File name
-- `$key` (string) - Translation key
-- `$value` (string) - Translation value
+`Darvis\LivewireInlineTranslation\Support\InlineTranslationConfig` is the one class in the package that reads the config.
 
-**Returns**: `Translation` - The created or updated model instance
+| Method | Returns |
+| --- | --- |
+| `InlineTranslationConfig::guard(): string` | `inline-translation.guard`, or `web` when it is empty or not a string |
+| `InlineTranslationConfig::modalContainerId(): string` | `inline-translation.modal_container_id`, or `inline-translation-modals` when it is empty or not a string |
 
-**Example**:
-```php
-Translation::setTranslation(
-    'en', 
-    'website', 
-    'welcome', 
-    'Welcome to our amazing platform!'
-);
-```
+Use it in your layout when you changed the container id and do not want to repeat it:
 
-**Note**: Uses `updateOrCreate()` internally, so it will:
-- Update existing translation if found
-- Create new translation if not found
-
-## InlineTranslation Component
-
-**Namespace**: `Darvis\LivewireInlineTranslation\InlineTranslation`
-
-### Properties
-
-#### `$translationKey`
-
-```php
-public string $translationKey = '';
-```
-
-The translation key in `group.key` format.
-
-**Example**: `'website.welcome'`
-
-#### `$translationValue`
-
-```php
-public string $translationValue = '';
-```
-
-The current translation value (from database or language file).
-
-#### `$showModal`
-
-```php
-public bool $showModal = false;
-```
-
-Controls modal visibility.
-
-### Methods
-
-#### `mount()`
-
-Initializes the component.
-
-```php
-public function mount(string $translationKey): void
-```
-
-**Parameters**:
-- `$translationKey` (string) - Translation key in `group.key` format
-
-**Called**: Automatically by Livewire when component is created
-
-**Example**:
+{% raw %}
 ```blade
-<livewire:inline-translation translationKey="website.welcome" />
+@use('Darvis\LivewireInlineTranslation\Support\InlineTranslationConfig')
+
+<div id="{{ InlineTranslationConfig::modalContainerId() }}"></div>
 ```
+{% endraw %}
 
-#### `openModal()`
+## Config keys and publish tags
 
-Opens the edit modal.
+| Config key | Env variable | Default |
+| --- | --- | --- |
+| `inline-translation.guard` | `INLINE_TRANSLATION_GUARD` | `web` |
+| `inline-translation.modal_container_id` | none | `inline-translation-modals` |
 
-```php
-public function openModal(): void
-```
+| Publish tag | Publishes |
+| --- | --- |
+| `inline-translation-config` | `config/inline-translation.php` |
+| `inline-translation-views` | `resources/views/vendor/inline-translation/` |
 
-**Called**: When user clicks the translation text (if authorized)
+There is no publish tag for the migration. The package loads it, and `php artisan migrate` runs it.
 
-**Side Effects**:
-- Refreshes `$translationValue` from database
-- Sets `$showModal = true`
-- Triggers view re-render
+## Events, routes and commands
 
-#### `closeModal()`
+The package dispatches no events, registers no routes and has no Artisan commands.
 
-Closes the edit modal.
+## The table
 
-```php
-public function closeModal(): void
-```
-
-**Called**: 
-- When user clicks "Cancel"
-- When user clicks outside modal
-- When user clicks close button
-
-**Side Effects**:
-- Sets `$showModal = false`
-- Triggers view re-render
-
-#### `save()`
-
-Saves the edited translation to database.
-
-```php
-public function save(): void
-```
-
-**Called**: When user clicks "Save" in modal
-
-**Process**:
-1. Parses `$translationKey` into group and key
-2. Gets current locale
-3. Saves `$translationValue` to database
-4. Closes modal
-
-**Side Effects**:
-- Creates/updates database record
-- Sets `$showModal = false`
-- Updates displayed text
-
-#### `getTranslation()` (protected)
-
-Retrieves the current translation value.
-
-```php
-protected function getTranslation(): string
-```
-
-**Returns**: `string` - Translation value
-
-**Priority**:
-1. Database translation (if exists)
-2. Language file translation (fallback)
-3. Translation key (if nothing found)
-
-**Example Flow**:
-```php
-// translationKey = "website.welcome"
-// locale = "en"
-
-// 1. Check database
-$db = Translation::getTranslation('en', 'website', 'welcome');
-if ($db !== null) return $db;
-
-// 2. Check language file
-return __('website.welcome');
-```
-
-#### `render()`
-
-Renders the component view.
-
-```php
-public function render()
-```
-
-**Returns**: `\Illuminate\View\View`
-
-**Variables Passed to View**:
-- `$isAuthorized` (bool) - Whether user can edit
-
-**Authorization Logic**:
-```php
-use Darvis\LivewireInlineTranslation\Support\InlineTranslationConfig;
-
-$isAuthorized = Auth::guard(InlineTranslationConfig::guard())->check();
-```
-
-## Service Provider
-
-**Namespace**: `Darvis\LivewireInlineTranslation\InlineTranslationServiceProvider`
-
-### Methods
-
-#### `boot()`
-
-Bootstraps the package.
-
-```php
-public function boot(): void
-```
-
-**Actions**:
-1. Registers Livewire component
-2. Loads migrations
-3. Loads views
-4. Publishes config
-5. Publishes views
-6. Publishes migrations
-
-#### `register()`
-
-Registers package services.
-
-```php
-public function register(): void
-```
-
-**Actions**:
-- Merges package config with app config
-
-## Blade Directives
-
-### Component Usage
-
-```blade
-<livewire:inline-translation translationKey="group.key" />
-```
-
-**Attributes**:
-- `translationKey` (required) - Translation key in `group.key` format
-
-**Output (Visitor)**:
-```html
-<span>Welcome to our platform!</span>
-```
-
-**Output (Authorized)**:
-```html
-<span wire:click="openModal" style="cursor: pointer; border-bottom: 1px dashed #3b82f6;">
-    Welcome to our platform!
-</span>
-```
-
-## Database Schema
-
-### `translations` Table
-
-```sql
-CREATE TABLE translations (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    locale VARCHAR(10) NOT NULL,
-    group VARCHAR(100) NOT NULL,
-    key VARCHAR(255) NOT NULL,
-    value TEXT NOT NULL,
-    created_at TIMESTAMP NULL,
-    updated_at TIMESTAMP NULL,
-    
-    UNIQUE KEY unique_translation (locale, group, key),
-    INDEX idx_locale (locale),
-    INDEX idx_group (group),
-    INDEX idx_key (key)
-);
-```
-
-**Columns**:
-- `id` - Primary key
-- `locale` - Language code (max 10 chars)
-- `group` - File name (max 100 chars)
-- `key` - Translation key (max 255 chars)
-- `value` - Translation value (text, unlimited)
-- `created_at` - Creation timestamp
-- `updated_at` - Last update timestamp
-
-**Indexes**:
-- Unique constraint on `(locale, group, key)`
-- Individual indexes on `locale`, `group`, `key`
-
-## Configuration
-
-### Config Keys
-
-```php
-// config/inline-translation.php
-
-return [
-    // Authentication guard name
-    'guard' => 'staff',
-    
-    // Modal container element ID
-    'modal_container_id' => 'inline-translation-modals',
-];
-```
-
-### Environment Variables
-
-```env
-INLINE_TRANSLATION_GUARD=staff
-```
-
-## Events
-
-The package doesn't emit custom events, but you can listen to Livewire events:
-
-```javascript
-// Listen for component updates
-Livewire.on('component-updated', (component) => {
-    console.log('Component updated:', component);
-});
-```
-
-## Extending the Package
-
-### Custom Component
-
-```php
-namespace App\Livewire;
-
-use Darvis\LivewireInlineTranslation\InlineTranslation as BaseInlineTranslation;
-
-class CustomInlineTranslation extends BaseInlineTranslation
-{
-    // Override methods as needed
-    
-    public function save(): void
-    {
-        // Add logging
-        logger('Translation saved', [
-            'key' => $this->translationKey,
-            'value' => $this->translationValue,
-        ]);
-        
-        // Call parent
-        parent::save();
-    }
-}
-```
-
-### Custom View
-
-Publish and modify the view:
-
-```bash
-php artisan vendor:publish --tag=inline-translation-views
-```
-
-Then edit `resources/views/vendor/inline-translation/inline-translation.blade.php`
-
-### Custom Model
-
-Extend the Translation model:
-
-```php
-namespace App\Models;
-
-use Darvis\LivewireInlineTranslation\Models\Translation as BaseTranslation;
-
-class Translation extends BaseTranslation
-{
-    // Add custom methods
-    
-    public static function getByGroup(string $locale, string $group): Collection
-    {
-        return self::where('locale', $locale)
-            ->where('group', $group)
-            ->get();
-    }
-}
-```
-
-## Type Hints
-
-For better IDE support:
-
-```php
-use Darvis\LivewireInlineTranslation\Models\Translation;
-use Darvis\LivewireInlineTranslation\InlineTranslation;
-
-/** @var Translation $translation */
-$translation = Translation::find(1);
-
-/** @var InlineTranslation $component */
-$component = Livewire::test(InlineTranslation::class);
-```
-
-## Next Steps
-
-- [Usage Guide](usage.md) - Learn how to use the package
-- [How It Works](how-it-works.md) - Understand the internals
-- [Contributing](../CONTRIBUTING.md) - Contribute to the package
+See [The translations table](how-it-works.md#the-translations-table).

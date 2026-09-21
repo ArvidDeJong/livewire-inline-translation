@@ -178,3 +178,42 @@ test('the footer credits ARVID.NL without a personal name', function () {
 
     expect(file_get_contents(docsPath('_includes/head_custom.html')))->not->toContain('"Person"');
 });
+
+test('every relative link resolves, and the home page links every page', function () {
+    $pages = array_map('basename', glob(docsPath('*.md')));
+    $home = (string) file_get_contents(docsPath('index.md'));
+
+    foreach ($pages as $page) {
+        if ($page !== 'index.md') {
+            expect(str_contains($home, ']('.$page.')'))->toBeTrue('index.md does not link '.$page);
+        }
+
+        preg_match_all('/\]\(([^)#\s]+\.md)(#[^)]*)?\)/', (string) file_get_contents(docsPath($page)), $links);
+
+        foreach ($links[1] as $target) {
+            if (str_starts_with($target, 'http')) {
+                continue;
+            }
+
+            expect(is_file(docsPath($target)))->toBeTrue($page.' links to '.$target.', which does not exist');
+        }
+    }
+});
+
+test('the beginner pages exist and the requirements agree with composer.json', function () {
+    expect(is_file(docsPath('troubleshooting.md')))->toBeTrue()
+        ->and(is_file(docsPath('testing.md')))->toBeTrue()
+        ->and((string) file_get_contents(docsPath('installation.md')))->toContain('## Check that it works');
+
+    $composer = json_decode((string) file_get_contents(dirname(__DIR__).'/composer.json'), true);
+
+    expect($composer['require']['php'])->toBe('^8.2')
+        ->and($composer['require']['illuminate/support'])->toBe('^11.0|^12.0|^13.0')
+        ->and($composer['require']['livewire/livewire'])->toBe('^3.0|^4.0')
+        ->and((string) file_get_contents(docsPath('_config.yml')))
+        ->toContain('requires: PHP 8.2+, Laravel 11, 12 or 13, Livewire 3 or 4');
+
+    foreach ([docsPath('index.md'), docsPath('installation.md'), dirname(__DIR__).'/README.md'] as $file) {
+        expect(preg_match('/11\.x or 12\.x|Laravel 11 (and|or) 12\b/', (string) file_get_contents($file)))->toBe(0, basename($file));
+    }
+});

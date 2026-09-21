@@ -1,27 +1,41 @@
 # Questions as people ask them to an assistant. Short, factual answers.
 # Rendered on faq.md, in the FAQPage structured data and in llms.txt.
+- q: What is darvis/livewire-inline-translation?
+  a: >-
+    A Laravel package with one Livewire component, `<livewire:inline-translation translation-key="website.welcome" />`, that shows a translation and lets a logged in editor change it on the page itself. They click the text, a modal opens, and the new value is stored in the `translations` table for the current locale.
+
 - q: How do I let a client edit the text on a Laravel website without a full CMS?
-  a: Install `darvis/livewire-inline-translation` and render `<livewire:inline-translation translation-key="website.welcome" />` where the text belongs. Someone logged in on the configured guard sees a dashed underline, clicks it, edits the text in a modal and the new value is stored in the database. Everyone else just sees the text.
+  a: >-
+    Install `darvis/livewire-inline-translation`, run `php artisan migrate`, add `<div id="inline-translation-modals"></div>` to your layout and render `<livewire:inline-translation translation-key="website.welcome" />` where the text belongs. Someone logged in on the configured guard sees a dashed underline, clicks it, edits the text in a modal and saves. Everyone else gets the text without the underline.
+
+- q: Which PHP, Laravel and Livewire versions does it support, and what does it cost?
+  a: >-
+    PHP 8.2 or higher, Laravel 11, 12 or 13, and Livewire 3 or 4. It is free and open source under the MIT license, needs a database for the edited texts, and uses no external service.
 
 - q: Where does the edited translation end up, in my language files or in the database?
-  a: In the database, in the `translations` table, one row per locale, group and key. Your language files are never written to. The component reads the database first and falls back to `__($key)`, so a key you have not edited yet still comes from your language file.
+  a: >-
+    In the database, in the `translations` table, one row per locale, group and key. Your language files are never written to. The component reads the database first and falls back to `__($key)`, so a text nobody has edited still comes from your language file.
 
 - q: Who is allowed to edit a translation?
-  a: Whoever is logged in on the guard from `config('inline-translation.guard')`, which defaults to `web`, so out of the box every logged in user may edit. The check is a plain `Auth::guard($guard)->check()`, made when the modal opens and when a translation is saved, so it is all or nothing. For per user or per key permissions, wrap the component in your own and decide there.
+  a: >-
+    Whoever is logged in on the guard from the `inline-translation.guard` setting (env `INLINE_TRANSLATION_GUARD`). The default is `web`, so out of the box every logged in user may edit every translation. Point it at a guard for editors, or extend the component and override the protected `isAuthorized()` method to require a permission.
 
-- q: Does darvis/livewire-inline-translation work with Livewire 4 and Laravel 13?
-  a: Yes. It supports Livewire 3 and 4, Laravel 11, 12 and 13, and PHP 8.2 or higher.
+- q: Is it safe to let someone edit text on a live page?
+  a: >-
+    Since version 1.3.1 the guard is checked when the component is drawn, in `openModal()` and in `save()`; the last two answer 403 for a visitor who may not edit, and the translation key is locked so the browser cannot change it. The stored value is rendered as HTML without sanitising, so everyone who may edit can put any markup on the page, including script. Give the guard only to people you trust with that, or strip tags in your own `save()`.
+
+- q: Can an editor use bold text, lists or line breaks in a translation?
+  a: >-
+    Yes. With `:html="true"` on the tag the modal shows a small editor with bold, italic and a bullet list instead of a text field. The value is rendered as HTML in both modes.
 
 - q: The edit modal does not appear or is cut off. What is wrong?
   a: >-
-    The modal is teleported by Alpine into the element named by `modal_container_id`, `inline-translation-modals` by default. That element has to exist in your layout and sit outside anything with its own stacking context, such as a container with `transform` or `overflow: hidden`. Put an empty `div` with that id just before the closing body tag.
+    The modal is teleported by Alpine into the element named by `modal_container_id`, `inline-translation-modals` by default. That element has to exist in your layout and sit outside anything with `overflow: hidden`, a `transform` or its own `z-index`. Put an empty `div` with that id at the end of the body.
 
-- q: Can an editor put HTML in a translation?
-  a: Yes, with `:html="true"` the modal shows a small editor with bold, italic and lists, and the stored value is rendered as HTML. That also means whoever may edit can put script on the page, so give the guard only to people you trust that far, or sanitise the value in your own `save()`.
-
-- q: How do I use a translation key that a visitor may not edit?
+- q: Why does __() still return the old text after someone edited a translation?
   a: >-
-    Use plain `__('website.welcome')` there. The component and the language file read the same keys, so you can mix the two on one page: editable where a client should be able to change the wording, plain where it must stay as written.
+    Only the component reads the database; `__()`, `@lang` and `trans()` keep reading your language files. Outside the component, use `Translation::getTranslation($locale, 'website', 'welcome') ?? __('website.welcome')`. The other way round, a plain `__('website.welcome')` is how you show a text that nobody may edit.
 
 - q: Do I have to publish a migration?
-  a: No. The `translations` table comes along with `php artisan migrate`. Only the config and the views are publishable.
+  a: >-
+    No. The `translations` table comes along with `php artisan migrate`. Only the config (`inline-translation-config`) and the view (`inline-translation-views`) are publishable.

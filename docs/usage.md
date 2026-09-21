@@ -1,368 +1,151 @@
 ---
-title: Usage
+title: "Usage"
 nav_order: 3
-description: "Render the inline-translation component in Blade, use the HTML editor mode, and the places where an editable translation does not belong."
+description: "One complete example of an editable translation in Blade, then the HTML editor, several locales, reading the stored value elsewhere and where not to use it."
 ---
 
-# Usage Guide
+# Usage
 
-This guide explains how to use the Livewire Inline Translation package in your application.
+## A complete example: an editable heading and intro
 
-## Basic Usage
+Three files. After this, `/about` shows a heading and an intro that an editor can change on the page.
 
-The simplest way to use the package is with the Livewire component:
+`lang/en/website.php`, the texts as they are before anyone edits them:
 
-```blade
-<livewire:inline-translation translationKey="website.welcome" />
-```
-
-### Translation Key Format
-
-The `translationKey` must follow this format: `{group}.{key}`
-
-- **group**: The language file name (without `.php`)
-- **key**: The translation key within that file
-
-**Examples**:
-- `website.welcome` → `lang/en/website.php` → `['welcome' => '...']`
-- `messages.hello` → `lang/en/messages.php` → `['hello' => '...']`
-- `auth.failed` → `lang/en/auth.php` → `['failed' => '...']`
-
-## How It Works
-
-### For Visitors (Not Logged In)
-
-When a visitor views the page, they see the translated text normally:
-
-```blade
-<livewire:inline-translation translationKey="website.welcome" />
-<!-- Renders: Welcome to our website! -->
-```
-
-### For Authorized Users (Logged In)
-
-When an authorized user (e.g., staff member) views the page:
-
-1. **Visual Indicator**: Text appears with a blue dashed underline
-2. **Click to Edit**: Clicking the text opens an edit modal
-3. **Edit & Save**: User can edit the translation and save
-4. **Instant Update**: The text updates immediately without page reload
-5. **Database Storage**: Custom translation is saved to database
-
-## Real-World Examples
-
-### Example 1: Homepage Hero Text
-
-```blade
-<header class="hero">
-    <h1>
-        <livewire:inline-translation translationKey="website.hero_title" />
-    </h1>
-    <p>
-        <livewire:inline-translation translationKey="website.hero_subtitle" />
-    </p>
-</header>
-```
-
-**Language file** (`lang/en/website.php`):
 ```php
+<?php
+
 return [
-    'hero_title' => 'Welcome to Our Platform',
-    'hero_subtitle' => 'The best solution for your business',
+    'about_title' => 'About us',
+    'about_intro' => 'We build websites.<br>Since 2010.',
 ];
 ```
 
-### Example 2: Button Text
-
-```blade
-<button type="submit">
-    <livewire:inline-translation translationKey="website.submit_button" />
-</button>
-```
-
-### Example 3: HTML Editor Mode
-
-For rich text content with formatting, use the `:html="true"` parameter to enable the WYSIWYG editor:
-
-```blade
-<div class="content">
-    <livewire:inline-translation translationKey="website.opening_hours" :html="true" />
-</div>
-```
-
-**Features of HTML Editor:**
-- **ContentEditable** - Native browser editing, no external dependencies
-- **Toolbar** - Bold, Italic, and Bullet List formatting
-- **Auto-save** - Debounced updates (500ms) prevent cursor jumping
-- **BR tags** - Automatically converts `<div>` and `<p>` tags to `<br>` for cleaner HTML
-
-**Language file**:
-```php
-return [
-    'opening_hours' => 'Monday - Friday: 9:00 - 17:00<br>Saturday & Sunday: Closed',
-];
-```
-
-**When to use HTML mode:**
-- Multi-line content with line breaks
-- Text that needs basic formatting (bold, italic)
-- Lists or structured content
-- Opening hours, addresses, or similar formatted text
-
-**When to use plain text mode:**
-- Simple single-line text
-- Button labels
-- Navigation items
-- Short messages
-
-### Example 4: Rich Content with HTML
-
-The component supports HTML in translations:
-
-```blade
-<div class="content">
-    <livewire:inline-translation translationKey="website.rich_content" />
-</div>
-```
-
-**Language file**:
-```php
-return [
-    'rich_content' => 'This is <strong>bold</strong> and <em>italic</em> text with a <a href="#">link</a>.',
-];
-```
-
-### Example 4: Multiple Languages
-
-The package respects Laravel's locale:
-
-```blade
-<!-- Dutch version (nl) -->
-<livewire:inline-translation translationKey="website.welcome" />
-<!-- Renders: Welkom op onze website! -->
-
-<!-- English version (en) -->
-<livewire:inline-translation translationKey="website.welcome" />
-<!-- Renders: Welcome to our website! -->
-```
-
-## Translation Priority
-
-The package uses a two-tier system:
-
-1. **Database** (Highest Priority)
-   - Custom translations saved via inline editing
-   - Stored in `translations` table
-   - Can override any language file
-
-2. **Language Files** (Fallback)
-   - Laravel's default `lang/{locale}/{file}.php` files
-   - Used when no database translation exists
-
-**Example Flow**:
-```
-User requests: website.welcome
-↓
-1. Check database for custom translation
-   - Found? → Return custom translation ✓
-   - Not found? → Continue to step 2
-↓
-2. Check language file
-   - Found? → Return file translation ✓
-   - Not found? → Return translation key
-```
-
-## Important Limitations
-
-### ❌ Do NOT Use Inside Clickable Elements
-
-**Wrong**:
-```blade
-<a href="/contact">
-    <livewire:inline-translation translationKey="website.contact" />
-</a>
-
-<button onclick="doSomething()">
-    <livewire:inline-translation translationKey="website.button" />
-</button>
-```
-
-**Why**: The component creates a clickable `<span>` for authorized users, which conflicts with parent clickable elements.
-
-**Correct**:
-{% raw %}
-```blade
-<a href="/contact">
-    {{ __('website.contact') }}
-</a>
-
-<button onclick="doSomething()">
-    {{ __('website.button') }}
-</button>
-```
-{% endraw %}
-
-### ✅ Best Practices
-
-**Use for**:
-- Headings and titles
-- Paragraphs and descriptions
-- Static content blocks
-- Hero sections
-- Feature descriptions
-
-**Don't use for**:
-- Navigation links
-- Button text inside `<a>` or `<button>`
-- Form labels inside `<label>`
-- Alt text for images
-
-## Authorization
-
-### Default Guard
-
-The default guard is `web`, the guard your ordinary users log in on. With that default **everyone who is logged in may edit every translation**, and a translation is rendered as HTML. Point the package at a guard only your editors can log in on, or narrow it with a permission (see Custom Authorization Logic).
-
-With `INLINE_TRANSLATION_GUARD=staff`:
+`routes/web.php`:
 
 ```php
-// This user CAN edit
-Auth::guard('staff')->login($staffUser);
+use Illuminate\Support\Facades\Route;
 
-// This user CANNOT edit
-Auth::guard('web')->login($regularUser);
+Route::view('/about', 'about');
 ```
 
-The guard is checked when the modal opens and when a translation is saved, not only when the page is drawn: both answer 403 for a visitor who may not edit.
+`resources/views/about.blade.php`:
 
-### Changing the Guard
+```blade
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>About us</title>
+</head>
+<body>
+    <h1><livewire:inline-translation translation-key="website.about_title" /></h1>
 
-To allow regular users to edit:
+    <div><livewire:inline-translation translation-key="website.about_intro" :html="true" /></div>
 
-```env
-INLINE_TRANSLATION_GUARD=web
+    <div id="inline-translation-modals"></div>
+</body>
+</html>
 ```
 
-Or in `config/inline-translation.php`:
+What happens when someone opens `/about`:
+
+- Each tag looks up its key in the `translations` table for the current locale. There is no row yet, so it shows the text from `lang/en/website.php`.
+- A visitor who is not logged in on the [configured guard](configuration.md) gets the text and nothing else.
+- An editor sees a dashed blue underline under both texts. A click opens the modal: a text field for the heading, a small editor with bold, italic and a bullet list for the intro, because of `:html="true"`.
+- "Save" stores the value in the `translations` table and closes the modal. From then on every visitor gets the stored text. The language file is not changed.
+
+## The key has the form group.key
+
+The part before the first dot is the group, which is the name of the language file. The rest is the key in that file.
+
+| `translation-key` | Language file | Stored as |
+| --- | --- | --- |
+| `website.welcome` | `lang/en/website.php`, key `welcome` | group `website`, key `welcome` |
+| `website.hero.title` | `lang/en/website.php`, key `hero.title` | group `website`, key `hero.title` |
+| `welcome` | none | not stored; the component shows the word `welcome` and "Save" does nothing |
+
+The key has to point at a text. A key that points at an array in the language file (`website.hero` in the second row) makes the page fail; see [Troubleshooting](troubleshooting.md#the-page-fails-with-return-value-must-be-of-type-string-array-returned).
+
+JSON translation strings, the ones without a group such as `__('Welcome')`, are not supported.
+
+## Plain text or the HTML editor
+
+| | `translation-key="..."` | `translation-key="..." :html="true"` |
+| --- | --- | --- |
+| In the modal | a text field | an editor with bold, italic and a bullet list |
+| Use it for | headings, short sentences | a few lines with line breaks or emphasis, such as opening hours |
+
+`:html="true"` only changes the editor. In both modes the stored value is put on the page as HTML, without escaping. A `<` typed in the text field is HTML too, and an editor can store any markup, including script. Give the guard only to people you trust with that, or [strip tags before saving](configuration.md#limit-the-html-an-editor-may-store).
+
+Two things to know about the editor:
+
+- It sends its content to the server 500 ms after the last change. Wait a moment after typing before you click "Save"; a click inside that half second stores the text from before the last change.
+- It removes `<div>` tags and turns each closing `</div>` into `<br>`, because that is what a browser inserts for a new line. Other tags, for example `<p>` from pasted text, are stored as they are.
+
+## Several locales
+
+A value is stored for `app()->getLocale()`. An editor who changes the text on the Dutch page changes the `nl` row; the English page keeps its own text.
+
+Saving happens in a separate request that Livewire sends to its own update route. Middleware on your page route does not run for that request, unless you tell Livewire to keep it. If a middleware sets the locale (from a URL prefix or the session), register it as persistent middleware, or the edit is stored under the default locale.
+
+`app/Providers/AppServiceProvider.php`:
+
 ```php
-return [
-    'guard' => 'web',
-];
-```
+use App\Http\Middleware\SetLocale;
+use Livewire\Livewire;
 
-### Custom Authorization Logic
-
-If you need more complex authorization, you can extend the component:
-
-```php
-namespace App\Livewire;
-
-use Darvis\LivewireInlineTranslation\InlineTranslation as BaseInlineTranslation;
-
-class InlineTranslation extends BaseInlineTranslation
+public function boot(): void
 {
-    protected function isAuthorized(): bool
-    {
-        // The guard check of the package, and a permission on top of it.
-        return parent::isAuthorized() && auth()->user()?->can('edit-translations') === true;
-    }
+    Livewire::addPersistentMiddleware([
+        SetLocale::class,
+    ]);
 }
 ```
 
-Override `isAuthorized()`, not `render()`. The view, `openModal()` and `save()` all ask `isAuthorized()`, so one override covers the underline and the writing. An override of `render()` only hides the underline, and without the `View` return type it is a fatal error.
+`SetLocale` stands for your own middleware class. The section "Configuring persistent middleware" of the [Livewire security documentation](https://livewire.laravel.com/docs/security) explains the mechanism.
 
-## Workflow Example
+## Read the stored value somewhere else
 
-Let's walk through a complete workflow:
-
-### 1. Developer Creates Language File
+Only the component reads the database. `__('website.welcome')`, `@lang` and `trans()` keep returning the language file, also after an edit. Where you need the edited text outside the component, in a mail, a meta tag or a controller, do the same lookup the component does:
 
 ```php
-// lang/en/website.php
-return [
-    'welcome' => 'Welcome to our website!',
-];
+use Darvis\LivewireInlineTranslation\Models\Translation;
+
+$title = Translation::getTranslation(app()->getLocale(), 'website', 'about_title')
+    ?? __('website.about_title');
 ```
 
-### 2. Developer Adds Component to View
+`getTranslation()` returns `null` when nobody has edited the text yet, so the `??` falls back to the language file. The value can contain HTML; escape it with `e($title)` where HTML is not allowed.
 
-```blade
-<h1>
-    <livewire:inline-translation translationKey="website.welcome" />
-</h1>
-```
+## Go back to the language file
 
-### 3. Staff Member Edits Translation
-
-1. Staff logs in via staff guard
-2. Visits the page
-3. Sees "Welcome to our website!" with blue underline
-4. Clicks the text
-5. Modal opens showing:
-   - Key: `website.welcome`
-   - Current value: `Welcome to our website!`
-6. Changes to: `Welcome to our amazing platform!`
-7. Clicks "Save"
-8. Modal closes
-9. Text updates immediately
-
-### 4. Database Record Created
-
-```sql
-INSERT INTO translations (locale, group, key, value)
-VALUES ('en', 'website', 'welcome', 'Welcome to our amazing platform!');
-```
-
-### 5. All Visitors See Updated Text
-
-From now on, everyone sees: `Welcome to our amazing platform!`
-
-The original language file remains unchanged, making it easy to revert if needed.
-
-## Tips & Tricks
-
-### Tip 1: Use Descriptive Keys
-
-**Good**:
-```php
-'hero_title' => '...',
-'hero_subtitle' => '...',
-'cta_button' => '...',
-```
-
-**Bad**:
-```php
-'text1' => '...',
-'text2' => '...',
-'btn' => '...',
-```
-
-### Tip 2: Group Related Translations
+A database row keeps winning, also after you change the language file. Delete the row to fall back:
 
 ```php
-// lang/en/homepage.php
-return [
-    'hero_title' => '...',
-    'hero_subtitle' => '...',
-    'feature_1_title' => '...',
-    'feature_1_description' => '...',
-];
+use Darvis\LivewireInlineTranslation\Models\Translation;
+
+Translation::where('locale', 'en')
+    ->where('group', 'website')
+    ->where('key', 'about_title')
+    ->delete();
 ```
 
-### Tip 3: Preview Before Publishing
+Saving an empty text does not do this. It stores an empty value, the text disappears from the page, and there is nothing left to click. Delete the row in that case too.
 
-Test translations in a staging environment before deploying to production.
+## Where the component does not belong
 
-### Tip 4: Export Database Translations
+The component renders a `<span>` element with Livewire's attributes around the text, and for an editor a click on it opens the modal.
 
-You can export custom translations to share across environments:
+| Do not use it | Why | Use instead |
+| --- | --- | --- |
+| inside `<a>`, `<button>` or `<label>` | the click opens the modal and also follows the link or submits the form | `__('website.contact')` |
+| in an attribute (`alt`, `title`, `placeholder`), in `<title>` or a meta tag | a `<span>` is not valid there | the lookup from "Read the stored value somewhere else" |
+| in a mail or a PDF | there is no Livewire there | the same lookup |
 
-```php
-$translations = \Darvis\LivewireInlineTranslation\Models\Translation::all();
-```
+It fits headings, paragraphs and other text that stands on its own.
 
-## Next Steps
+## Next
 
-- [Configuration](configuration.md) - Learn about all configuration options
-- [How It Works](how-it-works.md) - Understand the internals
-- [API Reference](api-reference.md) - Detailed API documentation
+- [Configuration](configuration.md): the guard, the modal container and narrowing who may edit
+- [Testing](testing.md): test a page that contains the component

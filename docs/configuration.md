@@ -1,323 +1,129 @@
 ---
-title: Configuration
+title: "Configuration"
 nav_order: 4
-description: "The two settings of darvis/livewire-inline-translation: the guard that decides who may edit, and the element the modal is teleported into."
+description: "The two settings of darvis/livewire-inline-translation, how to choose the guard that may edit, and how to narrow editing to a permission or limit the HTML."
 ---
 
 # Configuration
 
-This document covers all configuration options available in the Livewire Inline Translation package.
+## The two settings
 
-## Configuration File
+| Config key | Env variable | Default | What it does |
+| --- | --- | --- | --- |
+| `inline-translation.guard` | `INLINE_TRANSLATION_GUARD` | `web` | The authentication guard that decides who may edit. |
+| `inline-translation.modal_container_id` | none | `inline-translation-modals` | The `id` of the element in your layout that the modal is moved into. |
 
-After publishing the config file:
+An empty value, or a value that is not a string, falls back to the default.
+
+Set the guard in `.env`. For the container id you publish the config file first:
 
 ```bash
 php artisan vendor:publish --tag=inline-translation-config
 ```
 
-You'll find it at `config/inline-translation.php`:
+`config/inline-translation.php`:
 
 ```php
 <?php
 
 return [
     'guard' => env('INLINE_TRANSLATION_GUARD', 'web'),
-    'modal_container_id' => 'inline-translation-modals',
+
+    'modal_container_id' => 'site-modals',
 ];
 ```
 
-## Available Options
+The element in your layout has to carry the same id: `<div id="site-modals"></div>`.
 
-### Authentication Guard
+When your configuration is cached, run `php artisan config:clear` (or `php artisan config:cache` again) after every change to `.env` or the config file.
 
-**Key**: `guard`  
-**Type**: `string`  
-**Default**: `'web'`  
-**Environment Variable**: `INLINE_TRANSLATION_GUARD`
+## Choose the guard
 
-Controls which authentication guard determines if a user can edit translations.
+A guard is how Laravel knows who is logged in. Every guard of your application is defined under `guards` in `config/auth.php`; the [Laravel authentication documentation](https://laravel.com/docs/authentication#adding-custom-guards) explains how to add one.
 
-**Examples**:
+The package asks one question: is someone logged in on the configured guard? If so, that person may edit every translation on the site.
 
-```php
-// The default: every Laravel app has this guard
-'guard' => 'web',
+| Your situation | Setting |
+| --- | --- |
+| Only staff can log in to the site | keep `web` |
+| Customers log in on `web`, staff on a guard of their own | `INLINE_TRANSLATION_GUARD=staff`, with the name of that guard |
+| Staff and customers share one guard | keep that guard and [let only some users edit](#let-only-some-users-edit) |
 
-// Use web guard (regular users)
-'guard' => 'web',
+A guard name that is not defined in `config/auth.php` does not raise an error. Nobody can edit, and the pages keep showing their text.
 
-// Use custom guard
-'guard' => 'admin',
-```
+## Let only some users edit
 
-**Via Environment**:
+The component decides in one protected method, `isAuthorized()`. The view asks it to decide whether to draw the underline, and `openModal()` and `save()` ask it before they do anything; they answer with a 403 response when it returns `false`. Extend the component and override that method.
 
-```env
-# .env
-INLINE_TRANSLATION_GUARD=web
-```
-
-**Use Cases**:
-
-- **staff**: Only staff members can edit (recommended for production)
-- **web**: All authenticated users can edit (use with caution)
-- **admin**: Only administrators can edit
-- **custom**: Your custom guard
-
-### Modal Container ID
-
-**Key**: `modal_container_id`  
-**Type**: `string`  
-**Default**: `'inline-translation-modals'`
-
-The ID of the HTML element where modals will be teleported.
-
-**Example**:
+`app/Livewire/EditorsInlineTranslation.php`:
 
 ```php
-'modal_container_id' => 'my-modals-container',
-```
-
-**Layout Update Required**:
-
-```blade
-<div id="my-modals-container"></div>
-```
-
-**When to Change**:
-
-- You already have a container with this ID
-- You want to group modals differently
-- You have multiple modal systems
-
-## Environment Variables
-
-All configuration can be overridden via environment variables:
-
-```env
-# .env
-
-# Authentication guard
-INLINE_TRANSLATION_GUARD=staff
-
-# You can add more as needed
-```
-
-**Priority**:
-
-1. Environment variable (highest)
-2. Published config file
-3. Package default (lowest)
-
-## Runtime Configuration
-
-You can also change configuration at runtime:
-
-```php
-// In a service provider or middleware
-config(['inline-translation.guard' => 'web']);
-```
-
-**Note**: This only affects the current request.
-
-## Multiple Guards Example
-
-If you need different guards for different scenarios:
-
-```php
-// app/Providers/AppServiceProvider.php
-
-public function boot()
-{
-    // Allow web users in development
-    if (app()->environment('local')) {
-        config(['inline-translation.guard' => 'web']);
-    }
-    
-    // Only staff in production
-    if (app()->environment('production')) {
-        config(['inline-translation.guard' => 'staff']);
-    }
-}
-```
-
-## Custom Authorization Logic
-
-For more complex scenarios, extend the component:
-
-```php
-// app/Livewire/CustomInlineTranslation.php
+<?php
 
 namespace App\Livewire;
 
-use Darvis\LivewireInlineTranslation\InlineTranslation as BaseInlineTranslation;
-use Illuminate\Support\Facades\Auth;
+use Darvis\LivewireInlineTranslation\InlineTranslation;
 
-class CustomInlineTranslation extends BaseInlineTranslation
+class EditorsInlineTranslation extends InlineTranslation
 {
     protected function isAuthorized(): bool
     {
-        // The guard check of the package, and a permission on top of it.
         return parent::isAuthorized()
-            && Auth::guard('staff')->user()?->can('edit-translations') === true;
+            && auth()->user()?->can('edit-translations') === true;
     }
 }
 ```
 
-Override `isAuthorized()`, not `render()`. The view, `openModal()` and `save()` all ask `isAuthorized()`, so one override covers the underline and the writing.
+`parent::isAuthorized()` keeps the guard check. `can('edit-translations')` asks a [gate or policy](https://laravel.com/docs/authorization#gates) that you define yourself. `auth()->user()` is the user of the default guard; use `Auth::guard('staff')->user()` when your editors are on another guard.
 
-Then register your custom component:
+Register the class under the name of the package component, so that every `<livewire:inline-translation>` tag uses it.
+
+`app/Providers/AppServiceProvider.php`:
 
 ```php
-// app/Providers/AppServiceProvider.php
-
+use App\Livewire\EditorsInlineTranslation;
 use Livewire\Livewire;
-use App\Livewire\CustomInlineTranslation;
 
-public function boot()
+public function boot(): void
 {
-    // Override the default component
-    Livewire::component('inline-translation', CustomInlineTranslation::class);
+    Livewire::component('inline-translation', EditorsInlineTranslation::class);
 }
 ```
 
-## Best Practices
+Two rules for a subclass:
 
-### Production Settings
+- Do not override `render()` to change who may edit. That only hides the underline, and an override without the return type `Illuminate\Contracts\View\View` is a fatal error.
+- The browser can call every public method of a Livewire component. A public action you add yourself has to start with `$this->authorizeEditing();`.
 
-```env
-# .env (production)
-INLINE_TRANSLATION_GUARD=staff
-APP_ENV=production
-APP_DEBUG=false
-```
+## Limit the HTML an editor may store
 
-**Why**:
-- Only trusted staff can edit
-- Prevents accidental edits by regular users
-- Maintains content quality
-
-### Development Settings
-
-```env
-# .env (local)
-INLINE_TRANSLATION_GUARD=web
-APP_ENV=local
-APP_DEBUG=true
-```
-
-**Why**:
-- Easier testing without staff login
-- Faster development workflow
-- Can test with different user types
-
-### Staging Settings
-
-```env
-# .env (staging)
-INLINE_TRANSLATION_GUARD=staff
-APP_ENV=staging
-APP_DEBUG=false
-```
-
-**Why**:
-- Mirrors production setup
-- Allows content team to test
-- Catches issues before production
-
-## Security Considerations
-
-### Guard Selection
-
-**High Security** (Recommended):
-```php
-'guard' => 'staff', // Only staff members
-```
-
-**Medium Security**:
-```php
-'guard' => 'web', // All authenticated users
-```
-
-**Low Security** (Not Recommended):
-```php
-// Don't do this - anyone can edit!
-// The package doesn't support this, but be aware
-```
-
-### Additional Security Layers
-
-Consider adding:
-
-1. **Permissions**: Use Laravel's authorization
-2. **Audit Logging**: Track who changes what
-3. **Approval Workflow**: Require approval before publishing
-4. **Content Validation**: Sanitize HTML input
-
-**Example with Permissions**:
+The package stores what the editor sends and renders it as HTML. To allow only a few tags, clean the value in the same subclass before it is saved:
 
 ```php
-// Create a permission
-// php artisan permission:create edit-translations
-
-// In your custom component
-protected function isAuthorized(): bool
+public function save(): void
 {
-    return parent::isAuthorized()
-        && Auth::guard('staff')->user()?->hasPermissionTo('edit-translations') === true;
+    $this->translationValue = strip_tags(
+        $this->translationValue,
+        '<b><i><strong><em><ul><li><br>'
+    );
+
+    parent::save();
 }
 ```
 
-## Troubleshooting
+`parent::save()` does the authorisation check and writes the row. `strip_tags()` removes tags but leaves attributes on the tags you allow, so for untrusted editors use an HTML sanitiser package instead.
 
-### Config Not Loading
+## Change the look or the language of the modal
 
-**Problem**: Changes to config file aren't taking effect
+The modal uses inline styles and fixed English labels ("Edit Translation", "Key", "Translation", "Cancel", "Save"). Publish the view to change them:
 
-**Solution**:
 ```bash
-php artisan config:clear
-php artisan config:cache
+php artisan vendor:publish --tag=inline-translation-views
 ```
 
-### Wrong Guard Being Used
+Edit `resources/views/vendor/inline-translation/inline-translation.blade.php`. Keep the `wire:click` and `wire:model` attributes and the `x-teleport` line as they are. After a package upgrade, compare your copy with the package view; a published view is not updated for you.
 
-**Problem**: Using wrong authentication guard
+## Next
 
-**Check**:
-```php
-// In tinker or controller
-config('inline-translation.guard'); // Should show your guard
-
-Auth::guard('staff')->check(); // Should return true/false
-```
-
-**Fix**:
-1. Check `.env` file for `INLINE_TRANSLATION_GUARD`
-2. Clear config cache
-3. Verify guard exists in `config/auth.php`
-
-### Modal Container Not Found
-
-**Problem**: Modal doesn't appear
-
-**Check**:
-1. Container exists in layout: `<div id="inline-translation-modals"></div>`
-2. Container ID matches config
-3. Alpine.js is loaded
-4. Check browser console for errors
-
-**Fix**:
-{% raw %}
-```blade
-<!-- Make sure this exists in your layout -->
-<div id="{{ config('inline-translation.modal_container_id') }}"></div>
-```
-{% endraw %}
-
-## Next Steps
-
-- [Usage Guide](usage.md) - Learn how to use the package
-- [How It Works](how-it-works.md) - Understand the internals
-- [API Reference](api-reference.md) - Detailed API documentation
+- [How it works](how-it-works.md): what the component does on each request
+- [Troubleshooting](troubleshooting.md): when the underline or the modal does not show

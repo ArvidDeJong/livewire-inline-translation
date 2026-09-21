@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+Documentation only; nothing in the package changes. These claims in the docs were wrong:
+
+- **Installation** told you to add a Composer path repository and require `@dev`, and named Laravel "11.x or 12.x". The package is on Packagist (`composer require darvis/livewire-inline-translation`) and supports Laravel 11, 12 and 13. The layout example loaded Alpine from a CDN; Livewire ships Alpine, and a second copy breaks it.
+- **API reference and How it works** still showed `staff` as the default guard (`'guard' => 'staff'`, `INLINE_TRANSLATION_GUARD=staff`, "staff guard"). The default is `web`.
+- `mount()` was documented as `mount(string $translationKey)`. It is `mount(string $translationKey, bool $html = false)`, and the public `$html` property and the `:html` attribute were missing from the API reference.
+- `render()` was shown without its return type and with the guard check inside it. It returns `Illuminate\Contracts\View\View` and asks the protected `isAuthorized()`, which `openModal()` and `save()` ask as well, through `authorizeEditing()`.
+- The service provider was said to publish migrations and to load them "for package development". There is no publish tag for the migration; loading it is how every application gets the `translations` table.
+- "This query is cached by Eloquent": nothing is cached. It is one query per component per page view, and one more when the modal opens. The timing and size figures next to it were not measured and are gone.
+- The modal snippet had `x-teleport="#inline-translation-modals"` written out. The view uses the `modal_container_id` setting.
+- The HTML editor was said to turn `<div>` and `<p>` into `<br>`. It only removes `<div>` and turns `</div>` into `<br>`; `<p>` is stored as it is.
+- "All configuration can be overridden via environment variables": only `guard` has one, `INLINE_TRANSLATION_GUARD`.
+- The API reference suggested listening for a `component-updated` event. The package dispatches no events.
+- README and home page: "nothing in the markup gives away that it is editable". Every visitor gets Livewire's wrapper element, whose snapshot names the component and the key; what a visitor does not get is the underline, the click handler and the modal.
+- How it works linked to an `extending.md` that never existed.
+- `SECURITY.md` said only the underline and the modal are behind the guard, and told you to "wrap" the component for permissions. Saving is behind the guard too, and the hook is `isAuthorized()`.
+
+### Added
+
+- A **Troubleshooting** page, from symptom to cause and fix, with the literal error messages: no underline, no modal (Alpine's `Cannot find x-teleport element` warning), a 403 on save, an edit stored under the wrong locale, `Return value must be of type string, array returned`, a missing or clashing `translations` table, `Unable to find component: [inline-translation]`.
+- A **Testing** page with a complete Pest test for the editor flow and the refused visitor, another guard, another locale and a whole page.
+- Installation has a "Check that it works" section; Usage has one complete example with file names, and sections on several locales (persistent middleware), reading the stored value outside the component and going back to the language file.
+- The FAQ answers what the package is, which versions it supports, what it costs and whether it is safe.
+- The docs guard test checks that every relative link resolves, that the home page links every page and that the stated requirements match `composer.json`.
+
 ## [1.3.1] - 2026-09-21
 
 ### Security
