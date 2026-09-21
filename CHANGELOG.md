@@ -157,4 +157,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Future Releases
 
-See [GitHub Issues](https://github.com/darvis/livewire-inline-translation/issues) for planned features and improvements.
+See [GitHub Issues](https://github.com/ArvidDeJong/livewire-inline-translation/issues) for planned features and improvements.
