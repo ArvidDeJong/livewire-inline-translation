@@ -17,7 +17,7 @@ A client who wants the wording changed normally sends you an email. This lets th
 - 🔐 One guard check decides who may edit; a visitor without it sees plain text
 - 📝 Optional HTML mode with a small bold, italic and list editor
 - 🧩 No CSS framework needed: inline styles, Alpine for the modal, nothing from a CDN
-- 🤖 Laravel Boost guideline included
+- 🤖 Laravel Boost guideline and `livewire-inline-translation-development` skill included
 
 ## Requirements
 
@@ -72,6 +72,12 @@ The check is a plain `Auth::guard($guard)->check()`, all or nothing. The stored 
 ## Documentation
 
 [arviddejong.github.io/livewire-inline-translation](https://arviddejong.github.io/livewire-inline-translation/): installation, usage, configuration, how it works and the API reference.
+
+## Laravel Boost
+
+The package ships [Laravel Boost](https://laravel.com/docs/boost) resources: a guideline
+and a `livewire-inline-translation-development` skill. Run `php artisan boost:install`, or
+`php artisan boost:update --discover` in a project that already uses Boost.
 
 ## Contributing
 

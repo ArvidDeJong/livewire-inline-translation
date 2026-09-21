@@ -177,6 +177,10 @@ Then update your layout:
 <div id="my-custom-modals"></div>
 ```
 
+## Laravel Boost
+
+The package ships [Laravel Boost](https://laravel.com/docs/boost) resources: a guideline and a `livewire-inline-translation-development` skill, so an AI assistant in your project knows how the component looks up, renders and saves a translation. Run `php artisan boost:install`, or `php artisan boost:update --discover` in a project that already uses Boost.
+
 ## Troubleshooting
 
 ### Package Not Found
