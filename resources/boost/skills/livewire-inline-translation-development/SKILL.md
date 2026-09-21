@@ -1,6 +1,6 @@
 ---
 name: livewire-inline-translation-development
-description: Work with darvis/livewire-inline-translation. Use it to make a translation editable on the page, decide who may edit it, close the unguarded save action, read the stored value outside the component, keep the locale right on a Livewire update, and test all of it.
+description: Work with darvis/livewire-inline-translation. Use it to make a translation editable on the page, decide who may edit it, narrow editing to a permission, read the stored value outside the component, keep the locale right on a Livewire update, and test all of it.
 ---
 
 # darvis/livewire-inline-translation development
@@ -49,8 +49,9 @@ The table comes with `php artisan migrate`; there is no migration to publish. Th
 
 ## Pitfalls
 
-- **`save()` and `openModal()` do not check the guard.** The guard is only asked in `render()`, to decide whether the underline is shown. The component is on the page for every visitor, `translationKey`, `translationValue` and `html` are public and not locked, so a visitor who is not logged in can send a Livewire update that sets any `group.key` and any value and calls `save`. The value is rendered with `{!! !!}`, so that is stored script on the page. Do not rely on the guard alone; register the guarded subclass below.
-- `html` only switches the editor. Both modes render the value unescaped, so a `<` typed in the textarea is HTML too.
+- **The guard is checked in `openModal()` and `save()`, not only in the view.** Both answer 403 for a visitor who may not edit, and `translationKey` and `html` are `#[Locked]`, so the browser cannot point the component at another key. This is so since 1.3.1; on an older version the actions were open to every visitor, so upgrade before anything else. When you add a public action in a subclass, call `$this->authorizeEditing()` first: the browser can call every public method of a Livewire component.
+- The guard is the only check the package makes. Everyone who is logged in on it may edit every key. Narrow that with a subclass, see below.
+- `html` only switches the editor. Both modes render the value unescaped, so a `<` typed in the textarea is HTML too. An editor can therefore put any markup on the page; give the guard only to people you trust with that, or strip tags in a subclass.
 - The component renders a `<span>` with Livewire attributes. It cannot be used inside an attribute, `<title>`, a meta tag or a mail subject, and for an authorised user the click opens the modal, so keep it out of `<a>`, `<button>` and `<label>`.
 - Only the component reads the database. `__('website.welcome')`, `@lang` and `trans()` elsewhere (mails, meta tags, other pages) keep returning the language file. Read the stored value yourself where you need it, see below.
 - The locale is `app()->getLocale()` at the time of the request, and `save()` runs on Livewire's update request. A locale that is set by route middleware (a URL prefix, the session) is not set there unless that middleware is persistent, so the edit lands under the default locale and the text re-renders in the default language. Register it in a service provider: `Livewire::addPersistentMiddleware([\App\Http\Middleware\SetLocale::class]);`.
@@ -61,35 +62,19 @@ The table comes with `php artisan migrate`; there is no migration to publish. Th
 - The labels in the modal (`Edit Translation`, `Key`, `Translation`, `Cancel`, `Save`) are fixed English text in the view. Publish the views to change them.
 - Livewire ships Alpine. Do not load a second Alpine for the modal.
 
-## Guarding the actions and the value
+## Narrowing who may edit, and what they may store
 
-`isAuthorized()` is protected, so a subclass can reuse it. Override that method, not `render()`: `render()` declares `Illuminate\Contracts\View\View` as its return type, and an override without that return type is a fatal error.
+`isAuthorized()` is protected and is what `openModal()`, `save()` and the view all ask. Override that method, not `render()`: `render()` declares `Illuminate\Contracts\View\View` as its return type, and an override without that return type is a fatal error.
 
 ```php
 namespace App\Livewire;
 
 use Darvis\LivewireInlineTranslation\InlineTranslation;
-use Livewire\Attributes\Locked;
 
 class GuardedInlineTranslation extends InlineTranslation
 {
-    #[Locked]
-    public string $translationKey = '';
-
-    #[Locked]
-    public bool $html = false;
-
-    public function openModal(): void
-    {
-        abort_unless($this->isAuthorized(), 403);
-
-        parent::openModal();
-    }
-
     public function save(): void
     {
-        abort_unless($this->isAuthorized(), 403);
-
         $this->translationValue = strip_tags($this->translationValue, '<b><i><strong><em><ul><li><br>');
 
         parent::save();
@@ -97,10 +82,12 @@ class GuardedInlineTranslation extends InlineTranslation
 
     protected function isAuthorized(): bool
     {
-        return parent::isAuthorized() && auth()->user()?->can('edit-translations');
+        return parent::isAuthorized() && auth()->user()?->can('edit-translations') === true;
     }
 }
 ```
+
+`parent::save()` does the 403 check, so stripping the tags first is harmless for a visitor who is refused anyway.
 
 Register it under the same name in `AppServiceProvider::boot()`, so every existing tag uses it. The package provider is discovered before the application's providers, so this registration is the later one:
 
@@ -111,7 +98,7 @@ use Livewire\Livewire;
 Livewire::component('inline-translation', GuardedInlineTranslation::class);
 ```
 
-Leave out the `can()` line when the guard alone decides. `auth()->user()` is the default guard; use `Auth::guard(...)` when the editors are on another one.
+`auth()->user()` is the default guard; use `Auth::guard(...)` when the editors are on another one.
 
 ## Reading and writing a value yourself
 
@@ -173,8 +160,9 @@ it('refuses a save from a visitor', function () {
 });
 ```
 
-- The second test only passes with the guarded subclass registered. With the component as shipped the row is written; that is the pitfall above, so keep this test in the host app.
-- Test by the name `inline-translation`, not by the package class, or the test bypasses your subclass.
+- Keep the second test in the host app: it fails on a package version before 1.3.1, and it catches a subclass that adds an action without `authorizeEditing()`.
+- `->set('translationKey', ...)` throws `Cannot update locked property`; pass the key as a mount parameter.
+- When you registered a subclass, test by the name `inline-translation`, not by the package class, or the test bypasses your subclass.
 - `assertSee()` escapes its needle. Use `assertSeeHtml()` or `assertSee('wire:click="openModal"', false)` for markup.
 - Another guard: `config(['inline-translation.guard' => 'staff'])` together with `actingAs($user, 'staff')`. The guard has to exist in `auth.guards`, or nobody may edit.
 - Another locale: call `app()->setLocale('nl')` before `Livewire::test()` and assert on the row for `nl`.

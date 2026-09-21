@@ -143,7 +143,7 @@ php artisan migrate:status
 
 ### Change Authentication Guard
 
-By default, the package uses the `staff` guard. To change this:
+The default guard is `web`, the guard your ordinary users log in on. With that default **everyone who is logged in may edit every translation**, and a translation is rendered as HTML. Point the package at a guard only your editors can log in on, or narrow it with a permission. To change the guard:
 
 **Option 1**: Environment variable (recommended)
 

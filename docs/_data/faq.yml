@@ -7,7 +7,7 @@
   a: In the database, in the `translations` table, one row per locale, group and key. Your language files are never written to. The component reads the database first and falls back to `__($key)`, so a key you have not edited yet still comes from your language file.
 
 - q: Who is allowed to edit a translation?
-  a: Whoever is logged in on the guard from `config('inline-translation.guard')`, which defaults to `user`. The check is a plain `Auth::guard($guard)->check()`, so it is all or nothing. For per user or per key permissions, wrap the component in your own and decide there.
+  a: Whoever is logged in on the guard from `config('inline-translation.guard')`, which defaults to `web`, so out of the box every logged in user may edit. The check is a plain `Auth::guard($guard)->check()`, made when the modal opens and when a translation is saved, so it is all or nothing. For per user or per key permissions, wrap the component in your own and decide there.
 
 - q: Does darvis/livewire-inline-translation work with Livewire 4 and Laravel 13?
   a: Yes. It supports Livewire 3 and 4, Laravel 11, 12 and 13, and PHP 8.2 or higher.

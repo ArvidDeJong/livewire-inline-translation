@@ -221,7 +221,9 @@ User requests: website.welcome
 
 ### Default Guard
 
-By default, only users authenticated via the `staff` guard can edit translations:
+The default guard is `web`, the guard your ordinary users log in on. With that default **everyone who is logged in may edit every translation**, and a translation is rendered as HTML. Point the package at a guard only your editors can log in on, or narrow it with a permission (see Custom Authorization Logic).
+
+With `INLINE_TRANSLATION_GUARD=staff`:
 
 ```php
 // This user CAN edit
@@ -230,6 +232,8 @@ Auth::guard('staff')->login($staffUser);
 // This user CANNOT edit
 Auth::guard('web')->login($regularUser);
 ```
+
+The guard is checked when the modal opens and when a translation is saved, not only when the page is drawn: both answer 403 for a visitor who may not edit.
 
 ### Changing the Guard
 
@@ -257,17 +261,15 @@ use Darvis\LivewireInlineTranslation\InlineTranslation as BaseInlineTranslation;
 
 class InlineTranslation extends BaseInlineTranslation
 {
-    public function render()
+    protected function isAuthorized(): bool
     {
-        // Custom authorization logic
-        $isAuthorized = auth()->check() && auth()->user()->can('edit-translations');
-
-        return view('inline-translation::inline-translation', [
-            'isAuthorized' => $isAuthorized,
-        ]);
+        // The guard check of the package, and a permission on top of it.
+        return parent::isAuthorized() && auth()->user()?->can('edit-translations') === true;
     }
 }
 ```
+
+Override `isAuthorized()`, not `render()`. The view, `openModal()` and `save()` all ask `isAuthorized()`, so one override covers the underline and the writing. An override of `render()` only hides the underline, and without the `View` return type it is a fatal error.
 
 ## Workflow Example
 
