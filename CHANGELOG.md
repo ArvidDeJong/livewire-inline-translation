@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-09-21
+
 ### Security
 
 - **`save()` and `openModal()` now check the guard.** The guard was only asked when the component was drawn, to decide whether the underline is shown. The component is on the page for every visitor and the browser can call every public action of a Livewire component, so a visitor who was not logged in could store a value for any translation key, and a value is rendered as HTML. Both actions now answer 403 for a visitor who may not edit, and `translationKey` and `html` are `#[Locked]`, so the browser cannot point the component at another key. Upgrade, and check the `translations` table for rows you did not write:
