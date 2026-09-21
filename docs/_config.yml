@@ -1,5 +1,5 @@
 title: Livewire Inline Translation
-description: "Edit translations inline on the page in a Laravel Livewire app: an authorised user clicks the text, a modal opens and the new value is stored in the database."
+description: "Edit translations inline on the page in a Laravel Livewire app: a logged in editor clicks the text, a modal opens and the new value is stored in the database per locale."
 url: https://arviddejong.github.io
 baseurl: /livewire-inline-translation
 
@@ -18,7 +18,7 @@ package:
   license_url: https://github.com/ArvidDeJong/livewire-inline-translation/blob/main/LICENSE
   requires: PHP 8.2+, Laravel 11, 12 or 13, Livewire 3 or 4
   platforms: [Laravel, Livewire]
-  keywords: [laravel, livewire, translation, localization, i18n, inline editing, database translations, content editing, cms]
+  keywords: [laravel, livewire, translation, localization, i18n, inline editing, click to edit, database translations, edit text without a cms, content editing]
 
 # Developer credit in the footer and the structured data.
 developer:
